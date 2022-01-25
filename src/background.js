@@ -126,7 +126,6 @@ function load_batch(start, end, event) {
   for (var i = start; i < end; i++) {
     db.dataset.findOne({ index: i }, (err, doc) => {
       if (doc != null) {
-        console.log(doc);
         event.sender.send("load_example", doc);
       }
     });
