@@ -137,6 +137,7 @@
                   <div class="btn-group" style="float: left">
                     <button
                       type="button"
+                      v-on:click="add_alignment"
                       class="btn btn-primary"
                       style="margin: 25px 0px 10px 0px"
                     >
@@ -154,6 +155,13 @@
                       <i class="fas fa-times"></i>
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    style="margin: 25px 0px 10px 0px"
+                  >
+                    Submit Current
+                  </button>
                 </div>
               </div>
             </div>
@@ -279,125 +287,39 @@ export default {
       this.staging.hypothesis_tokens = this.staging.hypothesis.split(" ");
     },
 
-    display_selected_text: function (premise) {
-      let selection = this.current.selection_h;
-      let text = this.staging.hypothesis_tokens;
-      if (premise) {
-        selection = this.current.selection_p;
-        text = this.staging.premise_tokens;
-      }
-
-      if (selection.start >= 0 && selection.end >= 0) {
-        let surface = text.slice(selection.start, selection.end + 1).join(" ");
-        return surface;
-      } else {
-        return "";
-      }
-    },
-    clear_selection: function () {
-      this.current.selection_p.state = "none";
-      this.current.selection_p.start = -1;
-      this.current.selection_p.end = -1;
-      this.current.selection_p.current = -1;
-      this.current.selection_h.state = "none";
-      this.current.selection_h.start = -1;
-      this.current.selection_h.end = -1;
-      this.current.selection_h.current = -1;
-    },
-
-    /**
+    /*************************************************************************************
      *
+     * Below methods are used to handling alignment collection.
      *
-     * Functions for modifying current answers.
-     *
-     *
-     */
+     ************************************************************************************/
+    add_alignment: function () {
+      let selection_h = this.current.selection_h;
+      let text_h = this.staging.hypothesis_tokens;
 
-    is_answer_not_event: function () {
-      let start = this.current.selection.start;
-      let end = this.current.selection.end;
-      let event_key = start + "_" + end;
+      let selection_p = this.current.selection_p;
+      let text_p = this.staging.premise_tokens;
 
-      if (
-        !Object.prototype.hasOwnProperty.call(
-          this.staging.alignments,
-          event_key
-        )
-      ) {
-        return true;
+      let alignment_p = "";
+      let alignment_h = "";
+
+      if (selection_p.start >= 0 && selection_p.end >= 0) {
+        alignment_p = text_p
+          .slice(selection_p.start, selection_p.end + 1)
+          .join(" ");
       }
 
-      return false;
-    },
-
-    can_add_answer: function (event) {
-      if (event.start === -1 || event.end === -1) {
-        this.show_qa_error("The answer cannot be empty!");
-        return false;
+      if (selection_h.start >= 0 && selection_h.end >= 0) {
+        alignment_h = text_h
+          .slice(selection_h.start, selection_h.end + 1)
+          .join(" ");
       }
 
-      if (this.staging.current_question.text.length === 0) {
-        this.show_qa_error("This question is empty");
-        return false;
-      }
+      this.staging.alignments.push({
+        align_p: alignment_p,
+        align_h: alignment_h,
+      });
 
-      if (this.is_answer_not_event()) {
-        this.show_qa_error(
-          "Choose an answer from highlighted events! If you're sure of your answer, you can first add it to the event list by clicking the 'Edit Event Selection' button on the left!"
-        );
-        return false;
-      }
-
-      this.hide_qa_error();
-      return true;
-    },
-
-    add_answer: function () {
-      this.trim_start_end_to_nearest_space();
-
-      let start = this.current.selection.start;
-      let end = this.current.selection.end;
-      let event_key = start + "_" + end;
-
-      const event = { start, end, key: event_key };
-
-      if (!this.can_add_answer(event)) {
-        return false;
-      }
-
-      if (this.can_add_answer(event)) {
-        let start = this.current.selection.start;
-        let end = this.current.selection.end;
-        let event_key = start + "_" + end;
-        const event = { start, end, key: event_key };
-        console.log(event_key);
-        Vue.set(this.staging.current_question.answers, event_key, event);
-        console.log(this.staging.current_question.answers);
-        console.log("Updating highlight map.");
-
-        for (let i = start; i <= end; i++) {
-          Vue.set(this.current.selected_char_indices_for_answers, i, true);
-        }
-      } else {
-        console.log("Cannot add answer.");
-      }
-    },
-
-    delete_answer: function (event) {
-      this.$delete(this.staging.current_question.answers, event.key);
-      for (let i = event.start; i <= event.end; i++) {
-        Vue.set(this.current.selected_char_indices_for_answers, i, false);
-      }
-    },
-
-    is_selected_answer_highlight: function (idx) {
-      return this.current.selected_char_indices_for_answers[idx] === true;
-    },
-
-    highlight_selected_answer: function (start, end) {
-      for (let i = start; i <= end; i++) {
-        Vue.set(this.current.selected_char_indices_for_answers, i, true);
-      }
+      console.log(this.staging.alignments);
     },
 
     /*************************************************************************************
@@ -459,6 +381,43 @@ export default {
         this.current.selection_p.current = index;
       } else {
         this.current.selection_h.current = index;
+      }
+    },
+
+    display_selected_text: function (premise) {
+      let selection = this.current.selection_h;
+      let text = this.staging.hypothesis_tokens;
+      if (premise) {
+        selection = this.current.selection_p;
+        text = this.staging.premise_tokens;
+      }
+
+      if (selection.start >= 0 && selection.end >= 0) {
+        let surface = text.slice(selection.start, selection.end + 1).join(" ");
+        return surface;
+      } else {
+        return "";
+      }
+    },
+
+    clear_selection: function () {
+      this.current.selection_p.state = "none";
+      this.current.selection_p.start = -1;
+      this.current.selection_p.end = -1;
+      this.current.selection_p.current = -1;
+      this.current.selection_h.state = "none";
+      this.current.selection_h.start = -1;
+      this.current.selection_h.end = -1;
+      this.current.selection_h.current = -1;
+    },
+
+    is_selected_answer_highlight: function (idx) {
+      return this.current.selected_char_indices_for_answers[idx] === true;
+    },
+
+    highlight_selected_answer: function (start, end) {
+      for (let i = start; i <= end; i++) {
+        Vue.set(this.current.selected_char_indices_for_answers, i, true);
       }
     },
 
