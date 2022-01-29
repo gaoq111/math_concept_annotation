@@ -132,6 +132,10 @@ function load_batch(start, end, event) {
   }
 }
 
+ipcMain.on("submit_alignment", (event, annotated_example) => {
+  console.log(annotated_example);
+});
+
 ipcMain.on("load_batch", (event, dataset_name) => {
   if (!("dataset" in db)) {
     db.dataset = new Datastore({

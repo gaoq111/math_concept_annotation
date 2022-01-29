@@ -158,6 +158,7 @@
                   <button
                     type="button"
                     class="btn btn-secondary"
+                    v-on:click="submit_current"
                     style="margin: 25px 0px 10px 0px"
                   >
                     Submit Current
@@ -210,10 +211,9 @@ export default {
           state: "none",
         },
 
-        selected_char_indices_p: {},
+        selected_token_indices_p: {},
+        selected_token_indices_h: {},
         selected_char_indices_for_answers: {},
-
-        selected_char_indices_h: {},
       },
 
       staging: {
@@ -223,7 +223,7 @@ export default {
         pinned_example_id: null,
         start_annotate: false,
         current_example_id: 0,
-        current_example: "",
+        current_example: null,
         examples: [],
 
         premise: "",
@@ -315,11 +315,31 @@ export default {
       }
 
       this.staging.alignments.push({
-        align_p: alignment_p,
-        align_h: alignment_h,
+        align_p: {
+          start: selection_p.start,
+          end: selection_p.end,
+          text: alignment_p,
+        },
+        align_h: {
+          start: selection_h.start,
+          end: selection_h.end,
+          text: alignment_h,
+        },
       });
 
-      console.log(this.staging.alignments);
+      this.clear_selection();
+      this.do_highlight_all_event_selection();
+
+      //console.log(this.staging.alignments);
+    },
+
+    submit_current: function () {
+      var annotated_example = this.staging.current_example;
+      annotated_example["alignments"] = this.staging.alignments;
+      window.ipcRenderer.send(
+        "submit_alignment",
+        JSON.stringify(annotated_example)
+      );
     },
 
     /*************************************************************************************
@@ -328,11 +348,23 @@ export default {
      *
      ************************************************************************************/
 
+    do_highlight_all_event_selection: function () {
+      for (const key in this.staging.alignments) {
+        const alignment = this.staging.alignments[key];
+        for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
+          Vue.set(this.current.selected_token_indices_p, i, true);
+        }
+        for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
+          Vue.set(this.current.selected_token_indices_h, i, true);
+        }
+      }
+    },
+
     should_highlight: function (index, premise) {
       if (premise) {
-        return this.current.selected_char_indices_p[index] === true;
+        return this.current.selected_token_indices_p[index] === true;
       } else {
-        return this.current.selected_char_indices_h[index] === true;
+        return this.current.selected_token_indices_h[index] === true;
       }
     },
 
