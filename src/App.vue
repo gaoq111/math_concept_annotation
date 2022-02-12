@@ -329,8 +329,6 @@ export default {
 
       this.clear_selection();
       this.do_highlight_all_event_selection();
-
-      //console.log(this.staging.alignments);
     },
 
     submit_current: function () {

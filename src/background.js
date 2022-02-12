@@ -133,7 +133,15 @@ function load_batch(start, end, event) {
 }
 
 ipcMain.on("submit_alignment", (event, annotated_example) => {
-  console.log(annotated_example);
+  let doc = JSON.parse(annotated_example);
+  db.dataset.remove({ _id: doc["_id"] }, {}, function (err, numRemoved) {
+    console.log(numRemoved);
+  });
+
+  db.dataset.insert(doc, function (err, newDoc) {
+    console.log(err);
+    console.log(newDoc);
+  });
 });
 
 ipcMain.on("load_batch", (event, dataset_name) => {
