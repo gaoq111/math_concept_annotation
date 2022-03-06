@@ -142,6 +142,8 @@ ipcMain.on("submit_alignment", (event, annotated_example) => {
     console.log(err);
     console.log(newDoc);
   });
+
+  event.sender.send("current_submitted");
 });
 
 ipcMain.on("load_batch", (event, dataset_name) => {
