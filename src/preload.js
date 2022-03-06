@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("ipcRenderer", {
   send: (channel, data) => {
-    let validChannels = ["load_dataset", "load_batch", "submit_alignment"];
+    let validChannels = ["load_dataset", "load_batch", "submit_alignment", "get_next_batch", "get_prev_batch"];
     if (validChannels.includes(channel)) {
       console.log("send " + channel);
       ipcRenderer.send(channel, data);

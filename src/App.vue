@@ -181,6 +181,27 @@
               </div>
             </div>
           </blockquote>
+          <blockquote class="blockquote mb-0" id="block_start">
+            <div class="conclusion" id="buttonbar">
+              <div class="addNew">
+                <button
+                  type="button"
+                  class="btn btn-warning btn-sm"
+                  v-on:click="get_prev_batch"
+                >
+                  <i class="fas fa-lg fa-arrow-alt-circle-left"></i>
+                </button>
+                <div class="addNew"></div>
+                <button
+                  type="button"
+                  class="btn btn-warning btn-sm"
+                  v-on:click="get_next_batch"
+                >
+                  <i class="fas fa-lg fa-arrow-alt-circle-right"></i>
+                </button>
+              </div>
+            </div>
+          </blockquote>
         </div>
       </div>
     </div>
@@ -271,9 +292,13 @@ export default {
       );
     },
     get_next_batch: function () {
+      this.staging.examples = [];
+      this.staging.current_example_id;
       window.ipcRenderer.send("get_next_batch");
     },
     get_prev_batch: function () {
+      this.staging.examples = [];
+      this.staging.current_example_id;
       window.ipcRenderer.send("get_prev_batch");
     },
     get_prev_example: function () {
@@ -290,8 +315,8 @@ export default {
     },
     get_next_example: function () {
       this.staging.current_example_id += 1;
-      if (this.staging.current_example_id > 9) {
-        this.staging.current_example_id = 9;
+      if (this.staging.current_example_id > this.staging.examples.length-1) {
+        this.staging.current_example_id = this.staging.examples.length-1;
       }
       let example_id = this.staging.current_example_id;
       this.staging.current_example = this.staging.examples[example_id];
