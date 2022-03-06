@@ -143,27 +143,41 @@
                     >
                       Add Alignment
                     </button>
-
-                    <button
-                      class="btn btn-outline-danger"
-                      type="button"
-                      v-on:click="clear_selection"
-                      data-balloon-pos="up"
-                      aria-label="Clear selection"
-                      style="margin: 25px 0px 10px 0px"
-                    >
-                      <i class="fas fa-times"></i>
-                    </button>
                   </div>
                   <button
                     type="button"
                     class="btn btn-secondary"
                     v-on:click="submit_current"
-                    style="margin: 25px 0px 10px 0px"
+                    style="margin: 25px 0px 10px 0px; float: right"
                   >
-                    Submit Current
+                    Submit Annotation
                   </button>
                 </div>
+                <ul class="list-group" style="margin: 30px">
+                  <li 
+                    v-for="(alignment, index) in staging.alignments"
+                    v-bind:key="index"
+                    class="list-group-item d-flex justify-content-between align-items-center">
+                    <span style="color: DodgerBlue; font-size: 16px">
+                      <strong>
+                        {{`[${alignment.align_p.text}]`}}
+                        <i class="fas fa-arrow-right"></i>
+                        {{`[${alignment.align_h.text}]`}}
+                      </strong>
+                    </span>
+                    <button
+                      class="btn btn-outline-danger"
+                      type="button"
+                      v-on:click="remove_alignment(index)"
+                      data-balloon-pos="up"
+                      aria-label="Delete Alignment"
+                      style="margin-right: 10px"
+                    >
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </li>
+                </ul>
+
               </div>
             </div>
           </blockquote>
@@ -314,7 +328,7 @@ export default {
           .join(" ");
       }
 
-      this.staging.alignments.push({
+      let alignment = {
         align_p: {
           start: selection_p.start,
           end: selection_p.end,
@@ -325,10 +339,15 @@ export default {
           end: selection_h.end,
           text: alignment_h,
         },
-      });
-
+      }
+      this.staging.alignments.push(alignment);
       this.clear_selection();
-      this.do_highlight_all_event_selection();
+      this.do_highlight_alignment_selection(alignment);
+    },
+
+    remove_alignment: function (align_idx) {
+      let removed = this.staging.alignments.pop(align_idx);
+      this.undo_highlight_alignment_selection(removed);
     },
 
     submit_current: function () {
@@ -346,15 +365,21 @@ export default {
      *
      ************************************************************************************/
 
-    do_highlight_all_event_selection: function () {
-      for (const key in this.staging.alignments) {
-        const alignment = this.staging.alignments[key];
-        for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
-          Vue.set(this.current.selected_token_indices_p, i, true);
-        }
-        for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
-          Vue.set(this.current.selected_token_indices_h, i, true);
-        }
+    do_highlight_alignment_selection: function (alignment) {
+      for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
+        Vue.set(this.current.selected_token_indices_p, i, true);
+      }
+      for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
+        Vue.set(this.current.selected_token_indices_h, i, true);
+      }
+    },
+
+    undo_highlight_alignment_selection: function (alignment) {
+      for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
+        Vue.set(this.current.selected_token_indices_p, i, false);
+      }
+      for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
+        Vue.set(this.current.selected_token_indices_h, i, false);
       }
     },
 
@@ -488,6 +513,11 @@ export default {
       window.ipcRenderer.on("file_loaded", (event) => {
         event.preventDefault();
         alert("Input sentences are loaded into database !");
+      });
+
+      window.ipcRenderer.on("current_submitted", (event) => {
+        event.preventDefault();
+        alert("Current annotation is submitted to database !");
       });
 
       window.ipcRenderer.on("load_example", (example) => {
