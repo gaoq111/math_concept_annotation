@@ -71,7 +71,7 @@
                       >
                       <span
                         class="noselect"
-                        v-for="(token, index) in staging.premise_tokens"
+                        v-for="(token, index) in staging.current_example.premise_tokens"
                         v-bind:key="token.index"
                         v-on:mousedown="mousedown_text(index, true)"
                         v-on:mouseup="mouseup_text(index, true)"
@@ -96,7 +96,7 @@
                       >
                       <span
                         class="noselect"
-                        v-for="(token, index) in staging.hypothesis_tokens"
+                        v-for="(token, index) in staging.current_example.hypothesis_tokens"
                         v-bind:key="token.index"
                         v-on:mousedown="mousedown_text(index, false)"
                         v-on:mouseup="mouseup_text(index, false)"
@@ -119,7 +119,7 @@
                       <span style="color: DodgerBlue"
                         ><strong>[LABEL]</strong></span
                       >
-                      {{ staging.current_example["label"] }}
+                      {{ staging.current_example.label }}
                     </p>
                   </li>
                   <input
@@ -155,7 +155,7 @@
                 </div>
                 <ul class="list-group" style="margin: 30px">
                   <li 
-                    v-for="(alignment, index) in staging.alignments"
+                    v-for="(alignment, index) in staging.current_example.alignments"
                     v-bind:key="index"
                     class="list-group-item d-flex justify-content-between align-items-center">
                     <span style="color: DodgerBlue; font-size: 16px">
@@ -229,44 +229,16 @@ export default {
       seconds_remain: 180,
 
       data_loaded: false,
-      annotations: {},
-
-      current: {
-        selection_p: {
-          start: -1,
-          end: -1,
-          current: -1,
-          state: "none",
-        },
-
-        selection_h: {
-          start: -1,
-          end: -1,
-          current: -1,
-          state: "none",
-        },
-
-        selected_token_indices_p: {},
-        selected_token_indices_h: {},
-        selected_char_indices_for_answers: {},
-      },
 
       staging: {
         dataset_name: null,
         dataset_path: null,
-
-        pinned_example_id: null,
         start_annotate: false,
         current_example_id: 0,
         current_example: null,
+        current_dp: null,
         examples: [],
-
-        premise: "",
-        hypothesis: "",
-        premise_tokens: [],
-        hypothesis_tokens: [],
-        alignments: [],
-
+        data: [],
         submit_batch: false,
       },
     };
@@ -301,6 +273,7 @@ export default {
       this.staging.current_example_id;
       window.ipcRenderer.send("get_prev_batch");
     },
+
     get_prev_example: function () {
       this.staging.current_example_id -= 1;
       if (this.staging.current_example_id < 0) {
@@ -308,10 +281,7 @@ export default {
       }
       let example_id = this.staging.current_example_id;
       this.staging.current_example = this.staging.examples[example_id];
-      this.staging.premise = this.staging.current_example["premise"];
-      this.staging.hypothesis = this.staging.current_example["hypothesis"];
-      this.staging.premise_tokens = this.staging.premise.split(" ");
-      this.staging.hypothesis_tokens = this.staging.hypothesis.split(" ");
+      this.staging.current_dp = this.staging.data[example_id];
     },
     get_next_example: function () {
       this.staging.current_example_id += 1;
@@ -320,10 +290,7 @@ export default {
       }
       let example_id = this.staging.current_example_id;
       this.staging.current_example = this.staging.examples[example_id];
-      this.staging.premise = this.staging.current_example["premise"];
-      this.staging.hypothesis = this.staging.current_example["hypothesis"];
-      this.staging.premise_tokens = this.staging.premise.split(" ");
-      this.staging.hypothesis_tokens = this.staging.hypothesis.split(" ");
+      this.staging.current_dp = this.staging.data[example_id];
     },
 
     /*************************************************************************************
@@ -332,11 +299,11 @@ export default {
      *
      ************************************************************************************/
     add_alignment: function () {
-      let selection_h = this.current.selection_h;
-      let text_h = this.staging.hypothesis_tokens;
+      let selection_h = this.staging.current_example.selection_h;
+      let text_h = this.staging.current_example.hypothesis_tokens;
 
-      let selection_p = this.current.selection_p;
-      let text_p = this.staging.premise_tokens;
+      let selection_p = this.staging.current_example.selection_p;
+      let text_p = this.staging.current_example.premise_tokens;
 
       let alignment_p = "";
       let alignment_h = "";
@@ -365,23 +332,27 @@ export default {
           text: alignment_h,
         },
       }
-      this.staging.alignments.push(alignment);
+      this.staging.current_example.alignments.push(alignment);
       this.clear_selection();
       this.do_highlight_alignment_selection(alignment);
     },
 
     remove_alignment: function (align_idx) {
-      let removed = this.staging.alignments.pop(align_idx);
+      let removed = this.staging.current_example.alignments.pop(align_idx);
       this.undo_highlight_alignment_selection(removed);
     },
 
     submit_current: function () {
-      var annotated_example = this.staging.current_example;
-      annotated_example["alignments"] = this.staging.alignments;
-      window.ipcRenderer.send(
-        "submit_alignment",
-        JSON.stringify(annotated_example)
-      );
+      if (this.staging.current_example.alignments.length == 0) {
+        alert("No alignment pairs are annotated !")
+      } else {
+        var annotated_example = this.staging.current_dp;
+        annotated_example["alignments"] = this.staging.current_example.alignments;
+        window.ipcRenderer.send(
+          "submit_alignment",
+          JSON.stringify(annotated_example)
+        );
+      }
     },
 
     /*************************************************************************************
@@ -392,84 +363,84 @@ export default {
 
     do_highlight_alignment_selection: function (alignment) {
       for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
-        Vue.set(this.current.selected_token_indices_p, i, true);
+        Vue.set(this.staging.current_example.selected_token_indices_p, i, true);
       }
       for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
-        Vue.set(this.current.selected_token_indices_h, i, true);
+        Vue.set(this.staging.current_example.selected_token_indices_h, i, true);
       }
     },
 
     undo_highlight_alignment_selection: function (alignment) {
       for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
-        Vue.set(this.current.selected_token_indices_p, i, false);
+        Vue.set(this.staging.current_example.selected_token_indices_p, i, false);
       }
       for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
-        Vue.set(this.current.selected_token_indices_h, i, false);
+        Vue.set(this.staging.current_example.selected_token_indices_h, i, false);
       }
     },
 
     should_highlight: function (index, premise) {
       if (premise) {
-        return this.current.selected_token_indices_p[index] === true;
+        return this.staging.current_example.selected_token_indices_p[index] === true;
       } else {
-        return this.current.selected_token_indices_h[index] === true;
+        return this.staging.current_example.selected_token_indices_h[index] === true;
       }
     },
 
     mousedown_text: function (index, premise) {
       if (premise) {
-        this.current.selection_p.start = index;
-        this.current.selection_p.state = "selecting";
+        this.staging.current_example.selection_p.start = index;
+        this.staging.current_example.selection_p.state = "selecting";
       } else {
-        this.current.selection_h.start = index;
-        this.current.selection_h.state = "selecting";
+        this.staging.current_example.selection_h.start = index;
+        this.staging.current_example.selection_h.state = "selecting";
       }
     },
 
     mouseup_text: function (index, premise) {
       if (premise) {
-        this.current.selection_p.end = index;
-        this.current.selection_p.state = "none";
+        this.staging.current_example.selection_p.end = index;
+        this.staging.current_example.selection_p.state = "none";
         let _start = Math.min(
-          this.current.selection_p.start,
-          this.current.selection_p.end
+          this.staging.current_example.selection_p.start,
+          this.staging.current_example.selection_p.end
         );
         let _end = Math.max(
-          this.current.selection_p.start,
-          this.current.selection_p.end
+          this.staging.current_example.selection_p.start,
+          this.staging.current_example.selection_p.end
         );
-        this.current.selection_p.start = _start;
-        this.current.selection_p.end = _end;
+        this.staging.current_example.selection_p.start = _start;
+        this.staging.current_example.selection_p.end = _end;
       } else {
-        this.current.selection_h.end = index;
-        this.current.selection_h.state = "none";
+        this.staging.current_example.selection_h.end = index;
+        this.staging.current_example.selection_h.state = "none";
         let _start = Math.min(
-          this.current.selection_h.start,
-          this.current.selection_h.end
+          this.staging.current_example.selection_h.start,
+          this.staging.current_example.selection_h.end
         );
         let _end = Math.max(
-          this.current.selection_h.start,
-          this.current.selection_h.end
+          this.staging.current_example.selection_h.start,
+          this.staging.current_example.selection_h.end
         );
-        this.current.selection_h.start = _start;
-        this.current.selection_h.end = _end;
+        this.staging.current_example.selection_h.start = _start;
+        this.staging.current_example.selection_h.end = _end;
       }
     },
 
     mouseenter_text: function (index, premise) {
       if (premise) {
-        this.current.selection_p.current = index;
+        this.staging.current_example.selection_p.current = index;
       } else {
-        this.current.selection_h.current = index;
+        this.staging.current_example.selection_h.current = index;
       }
     },
 
     display_selected_text: function (premise) {
-      let selection = this.current.selection_h;
-      let text = this.staging.hypothesis_tokens;
+      let selection = this.staging.current_example.selection_h;
+      let text = this.staging.current_example.hypothesis_tokens;
       if (premise) {
-        selection = this.current.selection_p;
-        text = this.staging.premise_tokens;
+        selection = this.staging.current_example.selection_p;
+        text = this.staging.current_example.premise_tokens;
       }
 
       if (selection.start >= 0 && selection.end >= 0) {
@@ -481,23 +452,23 @@ export default {
     },
 
     clear_selection: function () {
-      this.current.selection_p.state = "none";
-      this.current.selection_p.start = -1;
-      this.current.selection_p.end = -1;
-      this.current.selection_p.current = -1;
-      this.current.selection_h.state = "none";
-      this.current.selection_h.start = -1;
-      this.current.selection_h.end = -1;
-      this.current.selection_h.current = -1;
+      this.staging.current_example.selection_p.state = "none";
+      this.staging.current_example.selection_p.start = -1;
+      this.staging.current_example.selection_p.end = -1;
+      this.staging.current_example.selection_p.current = -1;
+      this.staging.current_example.selection_h.state = "none";
+      this.staging.current_example.selection_h.start = -1;
+      this.staging.current_example.selection_h.end = -1;
+      this.staging.current_example.selection_h.current = -1;
     },
 
     is_selected_answer_highlight: function (idx) {
-      return this.current.selected_char_indices_for_answers[idx] === true;
+      return this.staging.current_example.selected_char_indices_for_answers[idx] === true;
     },
 
     highlight_selected_answer: function (start, end) {
       for (let i = start; i <= end; i++) {
-        Vue.set(this.current.selected_char_indices_for_answers, i, true);
+        Vue.set(this.staging.current_example.selected_char_indices_for_answers, i, true);
       }
     },
 
@@ -505,7 +476,7 @@ export default {
      * invalidate the current selection, this happens when mouse moved out of the selection scope.
      */
     invalidate_selection: function () {
-      if (this.current.selection.state !== "none") {
+      if (this.staging.current_example.selection.state !== "none") {
         this.clear_selection();
       }
     },
@@ -514,9 +485,9 @@ export default {
      * Should the current char be highlighted as part of the selection process?
      */
     is_in_selection_highlight: function (idx, premise) {
-      let selection = this.current.selection_h;
+      let selection = this.staging.current_example.selection_h;
       if (premise) {
-        selection = this.current.selection_p;
+        selection = this.staging.current_example.selection_p;
       }
       if (selection.state === "selecting") {
         return (
@@ -540,21 +511,45 @@ export default {
         alert("Input sentences are loaded into database !");
       });
 
-      window.ipcRenderer.on("current_submitted", (event) => {
-        event.preventDefault();
+      window.ipcRenderer.on("current_submitted", () => {
+        //event.preventDefault();
         alert("Current annotation is submitted to database !");
       });
 
       window.ipcRenderer.on("load_example", (example) => {
-        this.staging.examples.push(example);
-        if (this.staging.examples.length == 10) {
-          this.staging.start_annotate = true;
-        }
+        this.staging.start_annotate = true;
+        this.staging.data.push(example);
+
+        let example_container = {
+          premise: example["premise"],
+          hypothesis: example["hypothesis"],
+          label: example["label"],
+          premise_tokens:  example["premise"].split(" "),
+          hypothesis_tokens: example["hypothesis"].split(" "),
+          alignments: [],
+
+          selection_p: {
+            start: -1,
+            end: -1,
+            current: -1,
+            state: "none",
+          },
+
+          selection_h: {
+            start: -1,
+            end: -1,
+            current: -1,
+            state: "none",
+          },
+
+          selected_token_indices_p: {},
+          selected_token_indices_h: {},
+          selected_char_indices_for_answers: {},
+        };
+
+        this.staging.examples.push(example_container);
         this.staging.current_example = this.staging.examples[0];
-        this.staging.premise = this.staging.current_example["premise"];
-        this.staging.hypothesis = this.staging.current_example["hypothesis"];
-        this.staging.premise_tokens = this.staging.premise.split(" ");
-        this.staging.hypothesis_tokens = this.staging.hypothesis.split(" ");
+        this.staging.current_dp = this.staging.data[0];
       });
     });
   },
