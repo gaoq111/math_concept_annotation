@@ -19,6 +19,7 @@
             class="form-control"
             id="dataset_selector"
             accept=".csv, .txt, .json, .jsonl, .tsv"
+            v-on:change="(event) => get_file_path(event)"
           />
         </div>
         <button
@@ -71,7 +72,8 @@
                       >
                       <span
                         class="noselect"
-                        v-for="(token, index) in staging.current_example.premise_tokens"
+                        v-for="(token, index) in staging.current_example
+                          .premise_tokens"
                         v-bind:key="token.index"
                         v-on:mousedown="mousedown_text(index, true)"
                         v-on:mouseup="mouseup_text(index, true)"
@@ -96,7 +98,8 @@
                       >
                       <span
                         class="noselect"
-                        v-for="(token, index) in staging.current_example.hypothesis_tokens"
+                        v-for="(token, index) in staging.current_example
+                          .hypothesis_tokens"
                         v-bind:key="token.index"
                         v-on:mousedown="mousedown_text(index, false)"
                         v-on:mouseup="mouseup_text(index, false)"
@@ -154,15 +157,22 @@
                   </button>
                 </div>
                 <ul class="list-group" style="margin: 30px">
-                  <li 
-                    v-for="(alignment, index) in staging.current_example.alignments"
+                  <li
+                    v-for="(alignment, index) in staging.current_example
+                      .alignments"
                     v-bind:key="index"
-                    class="list-group-item d-flex justify-content-between align-items-center">
+                    class="
+                      list-group-item
+                      d-flex
+                      justify-content-between
+                      align-items-center
+                    "
+                  >
                     <span style="color: DodgerBlue; font-size: 16px">
                       <strong>
-                        {{`[${alignment.align_p.text}]`}}
+                        {{ `[${alignment.align_p.text}]` }}
                         <i class="fas fa-arrow-right"></i>
-                        {{`[${alignment.align_h.text}]`}}
+                        {{ `[${alignment.align_h.text}]` }}
                       </strong>
                     </span>
                     <button
@@ -177,7 +187,6 @@
                     </button>
                   </li>
                 </ul>
-
               </div>
             </div>
           </blockquote>
@@ -204,6 +213,25 @@
           </blockquote>
         </div>
       </div>
+      <form class="form-inline">
+        <div class="form-group mb-2">
+          <input
+            type="file"
+            class="form-control"
+            id="folder_selector"
+            v-on:change="(event) => get_folder_path(event)"
+            webkitdirectory
+          />
+          <button
+            type="button"
+            class="btn btn-primary"
+            style="margin-top: 20px"
+            v-on:click="load_dataset_to_db"
+          >
+            Download
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -233,6 +261,7 @@ export default {
       staging: {
         dataset_name: null,
         dataset_path: null,
+        download_folder: null,
         start_annotate: false,
         current_example_id: 0,
         current_example: null,
@@ -251,6 +280,11 @@ export default {
       var fileList = event.target.files;
       this.staging.dataset_path = fileList[0].path;
     },
+    get_folder_path: function (event) {
+      var fileList = event.target.files;
+      this.staging.download_folder = fileList[0].path;
+      console.log(this.staging.download_folder)
+    },
     start_annotation: function (event) {
       event.preventDefault();
       window.ipcRenderer.send("load_batch", this.staging.dataset_name);
@@ -261,6 +295,12 @@ export default {
         "load_dataset",
         this.staging.dataset_name,
         this.staging.dataset_path
+      );
+    },
+    download_annotation: function () {
+      window.ipcRenderer.send(
+        "download_all",
+        this.staging.download_folder
       );
     },
     get_next_batch: function () {
@@ -285,8 +325,8 @@ export default {
     },
     get_next_example: function () {
       this.staging.current_example_id += 1;
-      if (this.staging.current_example_id > this.staging.examples.length-1) {
-        this.staging.current_example_id = this.staging.examples.length-1;
+      if (this.staging.current_example_id > this.staging.examples.length - 1) {
+        this.staging.current_example_id = this.staging.examples.length - 1;
       }
       let example_id = this.staging.current_example_id;
       this.staging.current_example = this.staging.examples[example_id];
@@ -331,7 +371,7 @@ export default {
           end: selection_h.end,
           text: alignment_h,
         },
-      }
+      };
       this.staging.current_example.alignments.push(alignment);
       this.clear_selection();
       this.do_highlight_alignment_selection(alignment);
@@ -344,10 +384,11 @@ export default {
 
     submit_current: function () {
       if (this.staging.current_example.alignments.length == 0) {
-        alert("No alignment pairs are annotated !")
+        alert("No alignment pairs are annotated !");
       } else {
         var annotated_example = this.staging.current_dp;
-        annotated_example["alignments"] = this.staging.current_example.alignments;
+        annotated_example["alignments"] =
+          this.staging.current_example.alignments;
         window.ipcRenderer.send(
           "submit_alignment",
           JSON.stringify(annotated_example)
@@ -372,18 +413,30 @@ export default {
 
     undo_highlight_alignment_selection: function (alignment) {
       for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
-        Vue.set(this.staging.current_example.selected_token_indices_p, i, false);
+        Vue.set(
+          this.staging.current_example.selected_token_indices_p,
+          i,
+          false
+        );
       }
       for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
-        Vue.set(this.staging.current_example.selected_token_indices_h, i, false);
+        Vue.set(
+          this.staging.current_example.selected_token_indices_h,
+          i,
+          false
+        );
       }
     },
 
     should_highlight: function (index, premise) {
       if (premise) {
-        return this.staging.current_example.selected_token_indices_p[index] === true;
+        return (
+          this.staging.current_example.selected_token_indices_p[index] === true
+        );
       } else {
-        return this.staging.current_example.selected_token_indices_h[index] === true;
+        return (
+          this.staging.current_example.selected_token_indices_h[index] === true
+        );
       }
     },
 
@@ -463,12 +516,19 @@ export default {
     },
 
     is_selected_answer_highlight: function (idx) {
-      return this.staging.current_example.selected_char_indices_for_answers[idx] === true;
+      return (
+        this.staging.current_example.selected_char_indices_for_answers[idx] ===
+        true
+      );
     },
 
     highlight_selected_answer: function (start, end) {
       for (let i = start; i <= end; i++) {
-        Vue.set(this.staging.current_example.selected_char_indices_for_answers, i, true);
+        Vue.set(
+          this.staging.current_example.selected_char_indices_for_answers,
+          i,
+          true
+        );
       }
     },
 
@@ -524,7 +584,7 @@ export default {
           premise: example["premise"],
           hypothesis: example["hypothesis"],
           label: example["label"],
-          premise_tokens:  example["premise"].split(" "),
+          premise_tokens: example["premise"].split(" "),
           hypothesis_tokens: example["hypothesis"].split(" "),
           alignments: [],
 
