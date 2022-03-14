@@ -226,7 +226,7 @@
             type="button"
             class="btn btn-primary"
             style="margin-top: 20px"
-            v-on:click="load_dataset_to_db"
+            v-on:click="download_annotation"
           >
             Download
           </button>
@@ -574,6 +574,10 @@ export default {
       window.ipcRenderer.on("current_submitted", () => {
         //event.preventDefault();
         alert("Current annotation is submitted to database !");
+      });
+      window.ipcRenderer.on("download_complete", (path_dict) => {
+        //event.preventDefault();
+        alert("Download complete! File stored at " + path_dict["path"]);
       });
 
       window.ipcRenderer.on("load_example", (example) => {

@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld("ipcRenderer", {
     }
   },
   on: (channel, func) => {
-    let validChannels = ["load_example", "file_loaded", "current_submitted"];
+    let validChannels = ["load_example", "file_loaded", "current_submitted", "download_complete"];
     if (validChannels.includes(channel)) {
       console.log("receive " + channel);
       ipcRenderer.on(channel, (event, ...args) => func(...args));

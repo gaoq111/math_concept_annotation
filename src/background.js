@@ -178,6 +178,28 @@ ipcMain.on("get_prev_batch", (event) => {
   read_counter -= 10;
 });
 
+ipcMain.on("download_all", (event, out_path) => {
+  console.log(path.dirname(out_path));
+  let output = path.join(path.dirname(out_path), 'annotated.jsonl')
+  console.log(output)
+  var file = fs.createWriteStream(output);
+  file.on('error', function(err) {
+    if(err){
+    console.log("Write out error");
+  }})
+  db.dataset.find({"alignments": { $exists: true}}, (err, docs) => {
+    docs.forEach(function(doc) {
+      //console.log(JSON.stringify(doc))
+      file.write(JSON.stringify(doc) + '\n');
+    });
+    file.end();
+    });
+  
+  event.sender.send("download_complete", {
+    "path": output
+  });
+});
+
 ipcMain.on("new_span", (event, span_info) => {
   console.log(span_info);
   db.annotations.insert(span_info, function () {});
