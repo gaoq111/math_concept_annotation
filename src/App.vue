@@ -3,7 +3,7 @@
     <div class="truth-content">
       <h1 class="intro">Semantic Alignment Annotator</h1>
       <h2 class="intro-content">
-        Simple tool for annotating smeantic alignment pairs
+        A simple tool for annotating semantic alignment evidence
       </h2>
       <form>
         <div class="form-group">
@@ -283,7 +283,6 @@ export default {
     get_folder_path: function (event) {
       var fileList = event.target.files;
       this.staging.download_folder = fileList[0].path;
-      console.log(this.staging.download_folder)
     },
     start_annotation: function (event) {
       event.preventDefault();

@@ -1,11 +1,11 @@
 "use strict";
 
-import { app, protocol, BrowserWindow, ipcMain } from "electron";
+const { app, protocol, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const Datastore = require("nedb");
 var fs = require("fs");
-import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
-import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
+const createProtocol  = require("vue-cli-plugin-electron-builder/lib");
+const { installExtension, VUEJS_DEVTOOLS } = require("electron-devtools-installer");
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 protocol.registerSchemesAsPrivileged([
@@ -19,6 +19,7 @@ async function createWindow() {
   const win = new BrowserWindow({
     width: 1920,
     height: 1080,
+    icon: path.join(__static, 'icon.png'),
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
