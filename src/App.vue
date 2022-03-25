@@ -7,7 +7,6 @@
       </h2>
       <form>
         <div class="form-group">
-          <label for="exampleInputEmail1">Dataset Name</label>
           <input
             type="text"
             class="form-control"
@@ -190,27 +189,6 @@
               </div>
             </div>
           </blockquote>
-          <blockquote class="blockquote mb-0" id="block_start">
-            <div class="conclusion" id="buttonbar">
-              <div class="addNew">
-                <button
-                  type="button"
-                  class="btn btn-warning btn-sm"
-                  v-on:click="get_prev_batch"
-                >
-                  <i class="fas fa-lg fa-arrow-alt-circle-left"></i>
-                </button>
-                <div class="addNew"></div>
-                <button
-                  type="button"
-                  class="btn btn-warning btn-sm"
-                  v-on:click="get_next_batch"
-                >
-                  <i class="fas fa-lg fa-arrow-alt-circle-right"></i>
-                </button>
-              </div>
-            </div>
-          </blockquote>
         </div>
       </div>
       <form class="form-inline">
@@ -238,11 +216,24 @@
 
 <script>
 import Vue from "vue";
+import { firestorePlugin } from 'vuefire'
+import { db } from './firebaseDB'
+
+Vue.use(firestorePlugin)
+
+const fileread = new FileReader();
+const label_map = {
+  e: "Entailment",
+  c: "Contradiction",
+  n: "neutral",
+};
 
 export default {
   name: "AnnotationInterface",
 
   components: {},
+
+  props: ['id'],
 
   data: function () {
     return {
@@ -258,7 +249,15 @@ export default {
 
       data_loaded: false,
 
+      dataset_names: [
+        "anli_r1_test", "anli_r1_train", "anli_r1_val",
+        "anli_r2_test", "anli_r2_train", "anli_r2_val",
+        "anli_r3_test", "anli_r3_train", "anli_r3_val",
+        "snli_train", "snli_val", "snli_test"
+      ],
+
       staging: {
+        dataset: null,
         dataset_name: null,
         dataset_path: null,
         download_folder: null,
@@ -267,69 +266,133 @@ export default {
         current_example: null,
         current_dp: null,
         examples: [],
-        data: [],
-        submit_batch: false,
+        datalist: [],
       },
     };
   },
+  
   methods: {
     get_dataset_name: function (event) {
-      this.staging.dataset_name = event.target.value;
+      this.staging.datalistset_name = event.target.value;
     },
     get_file_path: function (event) {
       var fileList = event.target.files;
-      this.staging.dataset_path = fileList[0].path;
+      this.staging.datalistset_path = fileList[0];
     },
     get_folder_path: function (event) {
       var fileList = event.target.files;
       this.staging.download_folder = fileList[0].path;
     },
+
     start_annotation: function (event) {
       event.preventDefault();
-      window.ipcRenderer.send("load_batch", this.staging.dataset_name);
-      this.staging.submit_batch = true;
+      if (this.dataset_names.includes(this.staging.datalistset_name)) {
+        this.dataset = db.collection(this.staging.datalistset_name);
+        this.query_datapoint();
+      } else {
+        alert("ERROR: dataset does not exit, upload before annotation!")
+      }
     },
+
+    query_datapoint: function () {
+      this.dataset.where("index", "==", this.staging.current_example_id)
+            .get()
+            .then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    this.staging.current_dp = doc.data();
+                    this.build_container(this.staging.current_dp);
+                });
+                if (this.staging.current_example_id == 0) {
+                  this.staging.start_annotate = true;
+                }
+            })
+            .catch((error) => {
+                console.log("Error getting documents: ", error);
+            });
+    },
+
+    build_container: function (example) {
+      this.staging.datalist.push(example);
+      let example_container = {
+          premise: example["premise"],
+          hypothesis: example["hypothesis"],
+          label: example["label"],
+          premise_tokens: example["premise"].split(" "),
+          hypothesis_tokens: example["hypothesis"].split(" "),
+          alignments: [],
+
+          selection_p: {
+            start: -1,
+            end: -1,
+            current: -1,
+            state: "none",
+          },
+
+          selection_h: {
+            start: -1,
+            end: -1,
+            current: -1,
+            state: "none",
+          },
+
+          selected_token_indices_p: {},
+          selected_token_indices_h: {},
+          selected_char_indices_for_answers: {},
+        };
+
+        this.staging.examples.push(example_container);
+        this.staging.current_example = this.staging.examples[this.staging.current_example_id];
+    },
+
     load_dataset_to_db: function () {
-      window.ipcRenderer.send(
-        "load_dataset",
-        this.staging.dataset_name,
-        this.staging.dataset_path
-      );
+      fileread.onload = (res) => {
+        this.staging.datalistset = res.target.result.replace(/\r\n/g, "\n").split("\n");
+        var index = 0;
+        this.staging.datalistset.forEach((element) => {
+          let example = JSON.parse(element);
+          db.collection(this.staging.datalistset_name).add({
+            index: index,
+            premise: example["context"],
+            hypothesis: example["hypothesis"],
+            label: label_map[example["label"]],
+          }).then((docRef) => {
+              console.log("Document written with ID: ", docRef.id);
+          })
+          .catch((error) => {
+              console.error("Error adding document: ", error);
+          });
+          index += 1;
+        });
+      };
+      fileread.onerror = (err) => console.log(err);
+      fileread.readAsText(this.staging.datalistset_path);
     },
+
     download_annotation: function () {
       window.ipcRenderer.send(
         "download_all",
         this.staging.download_folder
       );
     },
-    get_next_batch: function () {
-      this.staging.examples = [];
-      this.staging.current_example_id;
-      window.ipcRenderer.send("get_next_batch");
-    },
-    get_prev_batch: function () {
-      this.staging.examples = [];
-      this.staging.current_example_id;
-      window.ipcRenderer.send("get_prev_batch");
-    },
 
     get_prev_example: function () {
-      this.staging.current_example_id -= 1;
-      if (this.staging.current_example_id < 0) {
-        this.staging.current_example_id = 0;
+      if (this.staging.current_example_id > 0) {
+        this.staging.current_example_id -= 1;
+        let example_id = this.staging.current_example_id;
+        this.staging.current_example = this.staging.examples[example_id];
+        this.staging.current_dp = this.staging.datalist[example_id];
       }
-      let example_id = this.staging.current_example_id;
-      this.staging.current_example = this.staging.examples[example_id];
-      this.staging.current_dp = this.staging.data[example_id];
     },
+
     get_next_example: function () {
       this.staging.current_example_id += 1;
-      if (this.staging.current_example_id > this.staging.examples.length - 1) {
-        this.staging.current_example_id = this.staging.examples.length - 1;
-      }
       let example_id = this.staging.current_example_id;
-      this.staging.current_example = this.staging.examples[example_id];
-      this.staging.current_dp = this.staging.data[example_id];
+      if (example_id > this.staging.datalist.length-1) {
+        this.query_datapoint();
+      } else {
+        this.staging.current_example = this.staging.examples[example_id];
+        this.staging.current_dp = this.staging.datalist[example_id];
+      }
     },
 
     /*************************************************************************************
@@ -385,13 +448,19 @@ export default {
       if (this.staging.current_example.alignments.length == 0) {
         alert("No alignment pairs are annotated !");
       } else {
-        var annotated_example = this.staging.current_dp;
-        annotated_example["alignments"] =
-          this.staging.current_example.alignments;
-        window.ipcRenderer.send(
-          "submit_alignment",
-          JSON.stringify(annotated_example)
-        );
+        this.dataset.where("index", "==", this.staging.current_example_id)
+            .limit(1).get()
+            .then((querySnapshot) => {
+                const doc = querySnapshot.docs[0];
+                doc.ref.update({
+                    "alignments": this.staging.current_example.alignments,
+                }).then(() => {
+                    alert("Document successfully updated!");
+                });
+            })
+            .catch((error) => {
+                alert("Error getting documents: ", error);
+            });
       }
     },
 
@@ -561,60 +630,6 @@ export default {
 
       return false;
     },
-  },
-
-  mounted() {
-    this.$nextTick(function () {
-      window.ipcRenderer.on("file_loaded", (event) => {
-        event.preventDefault();
-        alert("Input sentences are loaded into database !");
-      });
-
-      window.ipcRenderer.on("current_submitted", () => {
-        //event.preventDefault();
-        alert("Current annotation is submitted to database !");
-      });
-      window.ipcRenderer.on("download_complete", (path_dict) => {
-        //event.preventDefault();
-        alert("Download complete! File stored at " + path_dict["path"]);
-      });
-
-      window.ipcRenderer.on("load_example", (example) => {
-        this.staging.start_annotate = true;
-        this.staging.data.push(example);
-
-        let example_container = {
-          premise: example["premise"],
-          hypothesis: example["hypothesis"],
-          label: example["label"],
-          premise_tokens: example["premise"].split(" "),
-          hypothesis_tokens: example["hypothesis"].split(" "),
-          alignments: [],
-
-          selection_p: {
-            start: -1,
-            end: -1,
-            current: -1,
-            state: "none",
-          },
-
-          selection_h: {
-            start: -1,
-            end: -1,
-            current: -1,
-            state: "none",
-          },
-
-          selected_token_indices_p: {},
-          selected_token_indices_h: {},
-          selected_char_indices_for_answers: {},
-        };
-
-        this.staging.examples.push(example_container);
-        this.staging.current_example = this.staging.examples[0];
-        this.staging.current_dp = this.staging.data[0];
-      });
-    });
   },
 };
 </script>
