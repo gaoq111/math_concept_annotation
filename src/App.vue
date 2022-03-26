@@ -199,7 +199,7 @@
                       align-items-center
                     "
                   >
-                    <span style="color: DodgerBlue; font-size: 16px">
+                    <span style="color: DodgerBlue; font-size: 14px">
                       <strong>
                         {{ `[${alignment.align_p.text}]` }}
                         <i class="fas fa-arrow-right"></i>
@@ -345,6 +345,11 @@ export default {
                 querySnapshot.forEach((doc) => {
                     this.staging.current_dp = doc.data();
                     this.build_container(this.staging.current_dp);
+                    if ("is_annotated" in doc.data()) {
+                      if (doc.data()['is_annotated']) {
+                        alert("This example is already annotated! You can still review and make updates.")
+                      }
+                    }
                 });
                 if (!this.staging.start_annotate) {
                   this.staging.start_annotate = true;
@@ -383,6 +388,10 @@ export default {
           selected_token_indices_h: {},
           selected_char_indices_for_answers: {},
         };
+
+        if ("alignments" in example) {
+          example_container["alignments"] = example["alignments"];
+        }
 
         this.staging.current_example = example_container;
         this.staging.examples[this.staging.current_example_id] = example_container;
@@ -501,6 +510,7 @@ export default {
             .then((querySnapshot) => {
                 const doc = querySnapshot.docs[0];
                 doc.ref.update({
+                    "is_annotated": true,
                     "alignments": this.staging.current_example.alignments,
                 }).then(() => {
                     alert("Document successfully updated!");
