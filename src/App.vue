@@ -1,18 +1,19 @@
 <template>
-  <div class="main-content">
-    <div class="truth-content">
+    <div class="main-content">
       <h1 class="intro">Semantic Alignment Annotator</h1>
       <h2 class="intro-content">
         A simple tool for annotating semantic alignment evidence
       </h2>
-      <form>
-        <div class="form-group">
+      <form class="row g-3">
+        <div class="col-auto">
           <input
             type="text"
             class="form-control"
             v-on:change="(event) => get_dataset_name(event)"
             placeholder="Enter dataset name"
           />
+        </div>
+        <div class="col-auto">
           <input
             type="file"
             class="form-control"
@@ -21,21 +22,46 @@
             v-on:change="(event) => get_file_path(event)"
           />
         </div>
-        <button
+        <div class="col-auto">
+          <button
           type="button"
-          class="btn btn-primary"
-          v-on:click="load_dataset_to_db"
-        >
-          Load
-        </button>
-        <button
-          type=" button"
-          class="btn btn-primary"
-          v-on:click="(event) => start_annotation(event)"
-        >
-          Start Annotate
-        </button>
+          class="btn btn-primary mb-3"
+          v-on:click="load_dataset_to_db">Load</button>
+        </div>
       </form>
+
+      <form class="row g-3">
+        <div class="col-auto">
+          <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+              {{ selector_val }}
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+              <li 
+               v-for="(dataset, index) in dataset_names" 
+               v-bind:key="index"
+               v-on:click="(event) => selector_show(event)">
+                <a class="dropdown-item">{{ dataset }}</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="col-auto">
+          <input
+            type="text"
+            class="form-control"
+            v-on:change="(event) => get_starting_index(event)"
+            placeholder="Enter starting index"
+          />
+        </div>
+        <div class="col-auto">
+          <button
+          type=" button"
+          class="btn btn-primary mb-3"
+          v-on:click="(event) => start_annotation(event)">Start</button>
+        </div>
+      </form>
+
       <div class="card cell">
         <div class="card-header"></div>
         <div class="card-body">
@@ -61,10 +87,12 @@
             </div>
           </blockquote>
           <blockquote class="blockquote mb-0" id="block0">
-            <div class="conclusion" v-if="staging.start_annotate">
-              <div class="card">
+            <div class="conclusion card" v-if="staging.start_annotate">
                 <div class="card-body passage-display-box">
                   <li class="list-group-item">
+                    <span style="color: DodgerBlue"
+                        ><strong>[{{ staging.current_example_id }}]</strong></span
+                    >
                     <p class="card-text passage-text">
                       <span style="color: DodgerBlue"
                         ><strong>[PREMISE]</strong></span
@@ -124,18 +152,22 @@
                       {{ staging.current_example.label }}
                     </p>
                   </li>
-                  <input
-                    type="text"
-                    v-bind:value="display_selected_text(true)"
-                    class="form-control span-input"
-                    placeholder="premise span"
-                  />
-                  <input
-                    type="text"
-                    v-bind:value="display_selected_text(false)"
-                    class="form-control span-input"
-                    placeholder="hypothesis span"
-                  />
+                  <div class="col-auto" style="margin-top:20px; width:50%">
+                    <input
+                      type="text"
+                      v-bind:value="display_selected_text(true)"
+                      class="form-control span-input"
+                      placeholder="premise span"
+                    />
+                  </div>
+                  <div class="col-auto" style="margin-top:20px; width:50%">
+                    <input
+                      type="text"
+                      v-bind:value="display_selected_text(false)"
+                      class="form-control span-input"
+                      placeholder="hypothesis span"
+                    />
+                  </div>
                   <div class="btn-group" style="float: left">
                     <button
                       type="button"
@@ -186,13 +218,12 @@
                     </button>
                   </li>
                 </ul>
-              </div>
             </div>
           </blockquote>
         </div>
       </div>
-      <form class="form-inline">
-        <div class="form-group mb-2">
+      <form class="row g-2">
+        <div class="col-auto">
           <input
             type="file"
             class="form-control"
@@ -200,10 +231,11 @@
             v-on:change="(event) => get_folder_path(event)"
             webkitdirectory
           />
+        </div>
+        <div class="col-auto">
           <button
             type="button"
-            class="btn btn-primary"
-            style="margin-top: 20px"
+            class="btn btn-primary mb-3"
             v-on:click="download_annotation"
           >
             Download
@@ -211,7 +243,6 @@
         </div>
       </form>
     </div>
-  </div>
 </template>
 
 <script>
@@ -256,16 +287,20 @@ export default {
         "snli_train", "snli_val", "snli_test"
       ],
 
+      selector_val: "Select Dataset",
+
       staging: {
         dataset: null,
-        dataset_name: null,
+        loading_dataset_name: null,
+        current_dataset_name: null,
         dataset_path: null,
         download_folder: null,
         start_annotate: false,
+        starting_index: 0,
         current_example_id: 0,
         current_example: null,
         current_dp: null,
-        examples: [],
+        examples: {},
         datalist: [],
       },
     };
@@ -273,7 +308,7 @@ export default {
   
   methods: {
     get_dataset_name: function (event) {
-      this.staging.datalistset_name = event.target.value;
+      this.staging.loading_dataset_name = event.target.value;
     },
     get_file_path: function (event) {
       var fileList = event.target.files;
@@ -283,11 +318,20 @@ export default {
       var fileList = event.target.files;
       this.staging.download_folder = fileList[0].path;
     },
+    selector_show: function (event) {
+      event.preventDefault();
+      this.selector_val = event.target.innerHTML;
+      this.staging.current_dataset_name = event.target.innerHTML;
+    },
+    get_starting_index: function (event) {
+      this.staging.starting_index = parseInt(event.target.value);
+    },
 
     start_annotation: function (event) {
       event.preventDefault();
-      if (this.dataset_names.includes(this.staging.datalistset_name)) {
-        this.dataset = db.collection(this.staging.datalistset_name);
+      if (this.dataset_names.includes(this.staging.current_dataset_name)) {
+        this.dataset = db.collection(this.staging.current_dataset_name);
+        this.staging.current_example_id = this.staging.starting_index;
         this.query_datapoint();
       } else {
         alert("ERROR: dataset does not exit, upload before annotation!")
@@ -302,7 +346,7 @@ export default {
                     this.staging.current_dp = doc.data();
                     this.build_container(this.staging.current_dp);
                 });
-                if (this.staging.current_example_id == 0) {
+                if (!this.staging.start_annotate) {
                   this.staging.start_annotate = true;
                 }
             })
@@ -340,8 +384,8 @@ export default {
           selected_char_indices_for_answers: {},
         };
 
-        this.staging.examples.push(example_container);
-        this.staging.current_example = this.staging.examples[this.staging.current_example_id];
+        this.staging.current_example = example_container;
+        this.staging.examples[this.staging.current_example_id] = example_container;
     },
 
     load_dataset_to_db: function () {
@@ -350,7 +394,7 @@ export default {
         var index = 0;
         this.staging.datalistset.forEach((element) => {
           let example = JSON.parse(element);
-          db.collection(this.staging.datalistset_name).add({
+          db.collection(this.staging.current_dataset_name).add({
             index: index,
             premise: example["context"],
             hypothesis: example["hypothesis"],
@@ -379,19 +423,23 @@ export default {
       if (this.staging.current_example_id > 0) {
         this.staging.current_example_id -= 1;
         let example_id = this.staging.current_example_id;
-        this.staging.current_example = this.staging.examples[example_id];
-        this.staging.current_dp = this.staging.datalist[example_id];
+        if (example_id in this.staging.examples) {
+          this.staging.current_example = this.staging.examples[example_id];
+          this.staging.current_dp = this.staging.datalist[example_id];
+        } else {
+          this.query_datapoint();
+        }
       }
     },
 
     get_next_example: function () {
       this.staging.current_example_id += 1;
       let example_id = this.staging.current_example_id;
-      if (example_id > this.staging.datalist.length-1) {
-        this.query_datapoint();
-      } else {
+      if (example_id in this.staging.examples) {
         this.staging.current_example = this.staging.examples[example_id];
         this.staging.current_dp = this.staging.datalist[example_id];
+      } else {
+        this.query_datapoint();
       }
     },
 
