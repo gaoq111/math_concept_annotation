@@ -9,7 +9,8 @@
 .intro {
   font-size: 2.5rem;
   line-height: 57px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue";
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue";
   font-weight: 500;
   padding: 0px;
   margin: 5px;
@@ -28,7 +29,7 @@
   flex-grow: 1;
   width: 80%;
   margin-bottom: 20px;
-  overflow: hidden
+  overflow: hidden;
 }
 
 .addNew {
@@ -79,102 +80,99 @@ button:focus {
 }
 
 .span1a.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
 .span1b.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
 .span2a.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
 .span2b.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
 .span3a.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
 .span34b.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
 .span3c.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
-
 .span4a.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
 .span6a.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
-
 .span6b.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
 .span7a.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
 .span7b.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
 .span9a.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
 .span9b.highlighted {
-  background-color: yellow
+  background-color: var(--highlight-color);
 }
 
 .span9c.highlighted {
-  background-color: pink
+  background-color: pink;
 }
 
 .span9d.highlighted {
-  background-color: orange
+  background-color: orange;
 }
 
 .span10.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
 .span11a.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
 .span11b.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
 .span12a.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
 .span12b.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
 .span13a.highlighted {
-  background-color: lightblue
+  background-color: lightblue;
 }
 
 .span13b.highlighted {
-  background-color: lightgreen
+  background-color: lightgreen;
 }
 
-
 .annotated {
-  float: left
+  float: left;
 }
 
 select {
@@ -189,23 +187,23 @@ select {
 }
 
 .card-body {
-  padding: 1.0rem;
+  padding: 1rem;
 }
 
 #questionsWritten .card-text {
-  white-space: pre-wrap
+  white-space: pre-wrap;
 }
 
 #passage {
-  white-space: pre-wrap
+  white-space: pre-wrap;
 }
 
 #answersWritten p.card-text {
-  margin-bottom: 0.25rem
+  margin-bottom: 0.25rem;
 }
 
 #answersWritten-event p.card-text {
-  margin-bottom: 0.25rem
+  margin-bottom: 0.25rem;
 }
 
 .btn.btn-primary[disabled] {
@@ -218,7 +216,7 @@ select {
 
 .answer {
   line-height: 2em;
-  font-size: 14px
+  font-size: 14px;
 }
 
 .noselect {

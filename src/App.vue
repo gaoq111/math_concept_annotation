@@ -4,7 +4,7 @@
       <h2 class="intro-content">
         A simple tool for annotating semantic alignment evidence
       </h2>
-      <form class="row g-3">
+      <form class="row g-3" v-if="isLoadingDisabled">
         <div class="col-auto">
           <input
             type="text"
@@ -105,17 +105,7 @@
                         v-on:mousedown="mousedown_text(index, true)"
                         v-on:mouseup="mouseup_text(index, true)"
                         v-on:mouseenter="mouseenter_text(index, true)"
-                        v-bind:class="{
-                          highlight: should_highlight(index, true),
-                          select_highlight: is_in_selection_highlight(
-                            index,
-                            true
-                          ),
-                          is_selected_answer: is_selected_answer_highlight(
-                            index,
-                            true
-                          ),
-                        }"
+                        v-bind:style="highlight_with_color(index, true)"
                         >{{ token + " " }}</span
                       >
                     </p>
@@ -131,17 +121,7 @@
                         v-on:mousedown="mousedown_text(index, false)"
                         v-on:mouseup="mouseup_text(index, false)"
                         v-on:mouseenter="mouseenter_text(index, false)"
-                        v-bind:class="{
-                          highlight: should_highlight(index, false),
-                          select_highlight: is_in_selection_highlight(
-                            index,
-                            false
-                          ),
-                          is_selected_answer: is_selected_answer_highlight(
-                            index,
-                            false
-                          ),
-                        }"
+                        v-bind:style="highlight_with_color(index, false)"
                         >{{ token + " " }}</span
                       >
                     </p>
@@ -277,6 +257,7 @@ export default {
       frozen: true,
       frozen_time: 3,
       seconds_remain: 180,
+      isLoadingDisabled: false,
 
       data_loaded: false,
 
@@ -288,6 +269,13 @@ export default {
       ],
 
       selector_val: "Select Dataset",
+
+      token_style: {background: 'inherit'},
+      color_palette: [
+        "#ffd200", "#fa9900", "#d9d2e9", "#cebff0", 
+        "#ff9b95", "#f5cfc1", "#e98e00"
+      ],
+
 
       staging: {
         dataset: null,
@@ -384,17 +372,38 @@ export default {
             state: "none",
           },
 
+          token_color_id_p: 0,
+          token_color_id_h: 0,
+          
+          token_background_color_p: {},
+          token_background_color_h: {},
+
           selected_token_indices_p: {},
           selected_token_indices_h: {},
-          selected_char_indices_for_answers: {},
         };
 
         if ("alignments" in example) {
           example_container["alignments"] = example["alignments"];
         }
 
+        example_container.token_background_color_p = this.init_color_for_token(
+          example_container.premise_tokens
+        )
+
+        example_container.token_background_color_h = this.init_color_for_token(
+          example_container.hypothesis_tokens
+        )
+
         this.staging.current_example = example_container;
         this.staging.examples[this.staging.current_example_id] = example_container;
+    },
+
+    init_color_for_token: function (tokens) {
+      var tokens_color = {};
+      for (var i = 0; i < tokens.length; i++) {
+        tokens_color[i] = "inherit";
+      }
+      return tokens_color;
     },
 
     load_dataset_to_db: function () {
@@ -494,11 +503,13 @@ export default {
       this.staging.current_example.alignments.push(alignment);
       this.clear_selection();
       this.do_highlight_alignment_selection(alignment);
+      this.rotate_color_id();
     },
 
     remove_alignment: function (align_idx) {
-      let removed = this.staging.current_example.alignments.pop(align_idx);
-      this.undo_highlight_alignment_selection(removed);
+      let removed = JSON.stringify(this.staging.current_example.alignments[align_idx]);
+      this.staging.current_example.alignments.splice(align_idx, 1);
+      this.undo_highlight_alignment_selection(JSON.parse(removed));
     },
 
     submit_current: function () {
@@ -529,28 +540,52 @@ export default {
      ************************************************************************************/
 
     do_highlight_alignment_selection: function (alignment) {
+      var background_color_p = this.color_palette[
+        this.staging.current_example.token_color_id_p
+      ];
+
+      var background_color_h = this.color_palette[
+        this.staging.current_example.token_color_id_h
+      ];
+
       for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
-        Vue.set(this.staging.current_example.selected_token_indices_p, i, true);
+        this.staging.current_example.token_background_color_p[i] = background_color_p;
       }
       for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
-        Vue.set(this.staging.current_example.selected_token_indices_h, i, true);
+        this.staging.current_example.token_background_color_h[i] = background_color_h;
       }
     },
 
     undo_highlight_alignment_selection: function (alignment) {
       for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
-        Vue.set(
-          this.staging.current_example.selected_token_indices_p,
-          i,
-          false
-        );
+        this.staging.current_example.token_background_color_p[i] = "inherit";
       }
       for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
-        Vue.set(
-          this.staging.current_example.selected_token_indices_h,
-          i,
-          false
-        );
+        this.staging.current_example.token_background_color_h[i] = "inherit";
+      }
+    },
+
+    rotate_color_id: function () {
+      this.staging.current_example.token_color_id_p += 1;
+      if (this.staging.current_example.token_color_id_p > 6) {
+        this.staging.current_example.token_color_id_p = 0;
+      }
+
+      this.staging.current_example.token_color_id_h += 1;
+      if (this.staging.current_example.token_color_id_h > 6) {
+        this.staging.current_example.token_color_id_h = 0;
+      }
+    },
+
+    highlight_with_color: function (index, premise) {
+      if (this.is_in_selection_highlight(index, premise)) {
+        return {background: "lightskyblue"}
+      }
+
+      if (premise) {
+        return {background: this.staging.current_example.token_background_color_p[index]};
+      } else {
+        return {background: this.staging.current_example.token_background_color_h[index]};
       }
     },
 
@@ -639,23 +674,6 @@ export default {
       this.staging.current_example.selection_h.start = -1;
       this.staging.current_example.selection_h.end = -1;
       this.staging.current_example.selection_h.current = -1;
-    },
-
-    is_selected_answer_highlight: function (idx) {
-      return (
-        this.staging.current_example.selected_char_indices_for_answers[idx] ===
-        true
-      );
-    },
-
-    highlight_selected_answer: function (start, end) {
-      for (let i = start; i <= end; i++) {
-        Vue.set(
-          this.staging.current_example.selected_char_indices_for_answers,
-          i,
-          true
-        );
-      }
     },
 
     /**
