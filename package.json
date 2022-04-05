@@ -5,20 +5,14 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint",
-    "app:dir": "electron-builder --dir",
-    "app:dist": "electron-builder",
-    "electron:build": "vue-cli-service electron:build",
-    "electron:serve": "vue-cli-service electron:serve",
-    "postinstall": "electron-builder install-app-deps",
-    "postuninstall": "electron-builder install-app-deps"
+    "lint": "vue-cli-service lint"
   },
-  
   "main": "background.js",
   "dependencies": {
     "core-js": "^3.20.3",
-    "nedb": "^1.8.0",
+    "firebase": "^8.10.1",
     "vue": "^2.6.14",
+    "vuefire": "^2.2.5",
     "vuetify": "^2.6.4"
   },
   "devDependencies": {
@@ -26,10 +20,6 @@
     "@vue/cli-plugin-eslint": "~4.5.0",
     "@vue/cli-service": "~4.5.0",
     "babel-eslint": "^10.1.0",
-    "electron": "^13.6.9",
-    "electron-builder": "^23.0.2",
-    "electron-devtools-installer": "^3.2.0",
-    "electron-packager": "^15.4.0",
     "eslint": "^6.8.0",
     "eslint-plugin-vue": "^6.2.2",
     "sass": "~1.32.0",

@@ -1,19 +1,19 @@
 <template>
-  <div class="main-content">
-    <div class="truth-content">
+    <div class="main-content">
       <h1 class="intro">Semantic Alignment Annotator</h1>
       <h2 class="intro-content">
         A simple tool for annotating semantic alignment evidence
       </h2>
-      <form>
-        <div class="form-group">
-          <label for="exampleInputEmail1">Dataset Name</label>
+      <form class="row g-3" v-if="isLoadingDisabled">
+        <div class="col-auto">
           <input
             type="text"
             class="form-control"
             v-on:change="(event) => get_dataset_name(event)"
             placeholder="Enter dataset name"
           />
+        </div>
+        <div class="col-auto">
           <input
             type="file"
             class="form-control"
@@ -22,21 +22,46 @@
             v-on:change="(event) => get_file_path(event)"
           />
         </div>
-        <button
+        <div class="col-auto">
+          <button
           type="button"
-          class="btn btn-primary"
-          v-on:click="load_dataset_to_db"
-        >
-          Load
-        </button>
-        <button
-          type=" button"
-          class="btn btn-primary"
-          v-on:click="(event) => start_annotation(event)"
-        >
-          Start Annotate
-        </button>
+          class="btn btn-primary mb-3"
+          v-on:click="load_dataset_to_db">Load</button>
+        </div>
       </form>
+
+      <form class="row g-3">
+        <div class="col-auto">
+          <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+              {{ selector_val }}
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+              <li 
+               v-for="(dataset, index) in dataset_names" 
+               v-bind:key="index"
+               v-on:click="(event) => selector_show(event)">
+                <a class="dropdown-item">{{ dataset }}</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="col-auto">
+          <input
+            type="text"
+            class="form-control"
+            v-on:change="(event) => get_starting_index(event)"
+            placeholder="Enter starting index"
+          />
+        </div>
+        <div class="col-auto">
+          <button
+          type=" button"
+          class="btn btn-primary mb-3"
+          v-on:click="(event) => start_annotation(event)">Start</button>
+        </div>
+      </form>
+
       <div class="card cell">
         <div class="card-header"></div>
         <div class="card-body">
@@ -62,10 +87,12 @@
             </div>
           </blockquote>
           <blockquote class="blockquote mb-0" id="block0">
-            <div class="conclusion" v-if="staging.start_annotate">
-              <div class="card">
+            <div class="conclusion card" v-if="staging.start_annotate">
                 <div class="card-body passage-display-box">
                   <li class="list-group-item">
+                    <span style="color: DodgerBlue"
+                        ><strong>[{{ staging.current_example_id }}]</strong></span
+                    >
                     <p class="card-text passage-text">
                       <span style="color: DodgerBlue"
                         ><strong>[PREMISE]</strong></span
@@ -78,17 +105,7 @@
                         v-on:mousedown="mousedown_text(index, true)"
                         v-on:mouseup="mouseup_text(index, true)"
                         v-on:mouseenter="mouseenter_text(index, true)"
-                        v-bind:class="{
-                          highlight: should_highlight(index, true),
-                          select_highlight: is_in_selection_highlight(
-                            index,
-                            true
-                          ),
-                          is_selected_answer: is_selected_answer_highlight(
-                            index,
-                            true
-                          ),
-                        }"
+                        v-bind:style="highlight_with_color(index, true)"
                         >{{ token + " " }}</span
                       >
                     </p>
@@ -104,17 +121,7 @@
                         v-on:mousedown="mousedown_text(index, false)"
                         v-on:mouseup="mouseup_text(index, false)"
                         v-on:mouseenter="mouseenter_text(index, false)"
-                        v-bind:class="{
-                          highlight: should_highlight(index, false),
-                          select_highlight: is_in_selection_highlight(
-                            index,
-                            false
-                          ),
-                          is_selected_answer: is_selected_answer_highlight(
-                            index,
-                            false
-                          ),
-                        }"
+                        v-bind:style="highlight_with_color(index, false)"
                         >{{ token + " " }}</span
                       >
                     </p>
@@ -125,18 +132,22 @@
                       {{ staging.current_example.label }}
                     </p>
                   </li>
-                  <input
-                    type="text"
-                    v-bind:value="display_selected_text(true)"
-                    class="form-control span-input"
-                    placeholder="premise span"
-                  />
-                  <input
-                    type="text"
-                    v-bind:value="display_selected_text(false)"
-                    class="form-control span-input"
-                    placeholder="hypothesis span"
-                  />
+                  <div class="col-auto" style="margin-top:20px; width:50%">
+                    <input
+                      type="text"
+                      v-bind:value="display_selected_text(true)"
+                      class="form-control span-input"
+                      placeholder="premise span"
+                    />
+                  </div>
+                  <div class="col-auto" style="margin-top:20px; width:50%">
+                    <input
+                      type="text"
+                      v-bind:value="display_selected_text(false)"
+                      class="form-control span-input"
+                      placeholder="hypothesis span"
+                    />
+                  </div>
                   <div class="btn-group" style="float: left">
                     <button
                       type="button"
@@ -168,7 +179,7 @@
                       align-items-center
                     "
                   >
-                    <span style="color: DodgerBlue; font-size: 16px">
+                    <span style="color: DodgerBlue; font-size: 14px">
                       <strong>
                         {{ `[${alignment.align_p.text}]` }}
                         <i class="fas fa-arrow-right"></i>
@@ -187,34 +198,12 @@
                     </button>
                   </li>
                 </ul>
-              </div>
-            </div>
-          </blockquote>
-          <blockquote class="blockquote mb-0" id="block_start">
-            <div class="conclusion" id="buttonbar">
-              <div class="addNew">
-                <button
-                  type="button"
-                  class="btn btn-warning btn-sm"
-                  v-on:click="get_prev_batch"
-                >
-                  <i class="fas fa-lg fa-arrow-alt-circle-left"></i>
-                </button>
-                <div class="addNew"></div>
-                <button
-                  type="button"
-                  class="btn btn-warning btn-sm"
-                  v-on:click="get_next_batch"
-                >
-                  <i class="fas fa-lg fa-arrow-alt-circle-right"></i>
-                </button>
-              </div>
             </div>
           </blockquote>
         </div>
       </div>
-      <form class="form-inline">
-        <div class="form-group mb-2">
+      <form class="row g-2">
+        <div class="col-auto">
           <input
             type="file"
             class="form-control"
@@ -222,10 +211,11 @@
             v-on:change="(event) => get_folder_path(event)"
             webkitdirectory
           />
+        </div>
+        <div class="col-auto">
           <button
             type="button"
-            class="btn btn-primary"
-            style="margin-top: 20px"
+            class="btn btn-primary mb-3"
             v-on:click="download_annotation"
           >
             Download
@@ -233,16 +223,28 @@
         </div>
       </form>
     </div>
-  </div>
 </template>
 
 <script>
 import Vue from "vue";
+import { firestorePlugin } from 'vuefire'
+import { db } from './firebaseDB'
+
+Vue.use(firestorePlugin)
+
+const fileread = new FileReader();
+const label_map = {
+  e: "Entailment",
+  c: "Contradiction",
+  n: "neutral",
+};
 
 export default {
   name: "AnnotationInterface",
 
   components: {},
+
+  props: ['id'],
 
   data: function () {
     return {
@@ -255,81 +257,208 @@ export default {
       frozen: true,
       frozen_time: 3,
       seconds_remain: 180,
+      isLoadingDisabled: false,
 
       data_loaded: false,
 
+      dataset_names: [
+        "anli_r1_test", "anli_r1_train", "anli_r1_val",
+        "anli_r2_test", "anli_r2_train", "anli_r2_val",
+        "anli_r3_test", "anli_r3_train", "anli_r3_val",
+        "snli_train", "snli_val", "snli_test"
+      ],
+
+      selector_val: "Select Dataset",
+
+      token_style: {background: 'inherit'},
+      color_palette: [
+        "#ffd200", "#fa9900", "#d9d2e9", "#cebff0", 
+        "#ff9b95", "#f5cfc1", "#e98e00"
+      ],
+
+
       staging: {
-        dataset_name: null,
+        dataset: null,
+        loading_dataset_name: null,
+        current_dataset_name: null,
         dataset_path: null,
         download_folder: null,
         start_annotate: false,
+        starting_index: 0,
         current_example_id: 0,
         current_example: null,
         current_dp: null,
-        examples: [],
-        data: [],
-        submit_batch: false,
+        examples: {},
+        datalist: [],
       },
     };
   },
+  
   methods: {
     get_dataset_name: function (event) {
-      this.staging.dataset_name = event.target.value;
+      this.staging.loading_dataset_name = event.target.value;
     },
     get_file_path: function (event) {
       var fileList = event.target.files;
-      this.staging.dataset_path = fileList[0].path;
+      this.staging.datalistset_path = fileList[0];
     },
     get_folder_path: function (event) {
       var fileList = event.target.files;
       this.staging.download_folder = fileList[0].path;
     },
+    selector_show: function (event) {
+      event.preventDefault();
+      this.selector_val = event.target.innerHTML;
+      this.staging.current_dataset_name = event.target.innerHTML;
+    },
+    get_starting_index: function (event) {
+      this.staging.starting_index = parseInt(event.target.value);
+    },
+
     start_annotation: function (event) {
       event.preventDefault();
-      window.ipcRenderer.send("load_batch", this.staging.dataset_name);
-      this.staging.submit_batch = true;
+      if (this.dataset_names.includes(this.staging.current_dataset_name)) {
+        this.dataset = db.collection(this.staging.current_dataset_name);
+        this.staging.current_example_id = this.staging.starting_index;
+        this.query_datapoint();
+      } else {
+        alert("ERROR: dataset does not exit, upload before annotation!")
+      }
     },
+
+    query_datapoint: function () {
+      this.dataset.where("index", "==", this.staging.current_example_id)
+            .get()
+            .then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    this.staging.current_dp = doc.data();
+                    this.build_container(this.staging.current_dp);
+                    if ("is_annotated" in doc.data()) {
+                      if (doc.data()['is_annotated']) {
+                        alert("This example is already annotated! You can still review and make updates.")
+                      }
+                    }
+                });
+                if (!this.staging.start_annotate) {
+                  this.staging.start_annotate = true;
+                }
+            })
+            .catch((error) => {
+                console.log("Error getting documents: ", error);
+            });
+    },
+
+    build_container: function (example) {
+      this.staging.datalist.push(example);
+      let example_container = {
+          premise: example["premise"],
+          hypothesis: example["hypothesis"],
+          label: example["label"],
+          premise_tokens: example["premise"].split(" "),
+          hypothesis_tokens: example["hypothesis"].split(" "),
+          alignments: [],
+
+          selection_p: {
+            start: -1,
+            end: -1,
+            current: -1,
+            state: "none",
+          },
+
+          selection_h: {
+            start: -1,
+            end: -1,
+            current: -1,
+            state: "none",
+          },
+
+          token_color_id_p: 0,
+          token_color_id_h: 0,
+          
+          token_background_color_p: {},
+          token_background_color_h: {},
+
+          selected_token_indices_p: {},
+          selected_token_indices_h: {},
+        };
+
+        if ("alignments" in example) {
+          example_container["alignments"] = example["alignments"];
+        }
+
+        example_container.token_background_color_p = this.init_color_for_token(
+          example_container.premise_tokens
+        )
+
+        example_container.token_background_color_h = this.init_color_for_token(
+          example_container.hypothesis_tokens
+        )
+
+        this.staging.current_example = example_container;
+        this.staging.examples[this.staging.current_example_id] = example_container;
+    },
+
+    init_color_for_token: function (tokens) {
+      var tokens_color = {};
+      for (var i = 0; i < tokens.length; i++) {
+        tokens_color[i] = "inherit";
+      }
+      return tokens_color;
+    },
+
     load_dataset_to_db: function () {
-      window.ipcRenderer.send(
-        "load_dataset",
-        this.staging.dataset_name,
-        this.staging.dataset_path
-      );
+      fileread.onload = (res) => {
+        this.staging.datalistset = res.target.result.replace(/\r\n/g, "\n").split("\n");
+        var index = 0;
+        this.staging.datalistset.forEach((element) => {
+          let example = JSON.parse(element);
+          db.collection(this.staging.current_dataset_name).add({
+            index: index,
+            premise: example["context"],
+            hypothesis: example["hypothesis"],
+            label: label_map[example["label"]],
+          }).then((docRef) => {
+              console.log("Document written with ID: ", docRef.id);
+          })
+          .catch((error) => {
+              console.error("Error adding document: ", error);
+          });
+          index += 1;
+        });
+      };
+      fileread.onerror = (err) => console.log(err);
+      fileread.readAsText(this.staging.datalistset_path);
     },
+
     download_annotation: function () {
       window.ipcRenderer.send(
         "download_all",
         this.staging.download_folder
       );
     },
-    get_next_batch: function () {
-      this.staging.examples = [];
-      this.staging.current_example_id;
-      window.ipcRenderer.send("get_next_batch");
-    },
-    get_prev_batch: function () {
-      this.staging.examples = [];
-      this.staging.current_example_id;
-      window.ipcRenderer.send("get_prev_batch");
-    },
 
     get_prev_example: function () {
-      this.staging.current_example_id -= 1;
-      if (this.staging.current_example_id < 0) {
-        this.staging.current_example_id = 0;
+      if (this.staging.current_example_id > 0) {
+        this.staging.current_example_id -= 1;
+        let example_id = this.staging.current_example_id;
+        if (example_id in this.staging.examples) {
+          this.staging.current_example = this.staging.examples[example_id];
+          this.staging.current_dp = this.staging.datalist[example_id];
+        } else {
+          this.query_datapoint();
+        }
       }
-      let example_id = this.staging.current_example_id;
-      this.staging.current_example = this.staging.examples[example_id];
-      this.staging.current_dp = this.staging.data[example_id];
     },
+
     get_next_example: function () {
       this.staging.current_example_id += 1;
-      if (this.staging.current_example_id > this.staging.examples.length - 1) {
-        this.staging.current_example_id = this.staging.examples.length - 1;
-      }
       let example_id = this.staging.current_example_id;
-      this.staging.current_example = this.staging.examples[example_id];
-      this.staging.current_dp = this.staging.data[example_id];
+      if (example_id in this.staging.examples) {
+        this.staging.current_example = this.staging.examples[example_id];
+        this.staging.current_dp = this.staging.datalist[example_id];
+      } else {
+        this.query_datapoint();
+      }
     },
 
     /*************************************************************************************
@@ -374,24 +503,33 @@ export default {
       this.staging.current_example.alignments.push(alignment);
       this.clear_selection();
       this.do_highlight_alignment_selection(alignment);
+      this.rotate_color_id();
     },
 
     remove_alignment: function (align_idx) {
-      let removed = this.staging.current_example.alignments.pop(align_idx);
-      this.undo_highlight_alignment_selection(removed);
+      let removed = JSON.stringify(this.staging.current_example.alignments[align_idx]);
+      this.staging.current_example.alignments.splice(align_idx, 1);
+      this.undo_highlight_alignment_selection(JSON.parse(removed));
     },
 
     submit_current: function () {
       if (this.staging.current_example.alignments.length == 0) {
         alert("No alignment pairs are annotated !");
       } else {
-        var annotated_example = this.staging.current_dp;
-        annotated_example["alignments"] =
-          this.staging.current_example.alignments;
-        window.ipcRenderer.send(
-          "submit_alignment",
-          JSON.stringify(annotated_example)
-        );
+        this.dataset.where("index", "==", this.staging.current_example_id)
+            .limit(1).get()
+            .then((querySnapshot) => {
+                const doc = querySnapshot.docs[0];
+                doc.ref.update({
+                    "is_annotated": true,
+                    "alignments": this.staging.current_example.alignments,
+                }).then(() => {
+                    alert("Document successfully updated!");
+                });
+            })
+            .catch((error) => {
+                alert("Error getting documents: ", error);
+            });
       }
     },
 
@@ -402,28 +540,52 @@ export default {
      ************************************************************************************/
 
     do_highlight_alignment_selection: function (alignment) {
+      var background_color_p = this.color_palette[
+        this.staging.current_example.token_color_id_p
+      ];
+
+      var background_color_h = this.color_palette[
+        this.staging.current_example.token_color_id_h
+      ];
+
       for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
-        Vue.set(this.staging.current_example.selected_token_indices_p, i, true);
+        this.staging.current_example.token_background_color_p[i] = background_color_p;
       }
       for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
-        Vue.set(this.staging.current_example.selected_token_indices_h, i, true);
+        this.staging.current_example.token_background_color_h[i] = background_color_h;
       }
     },
 
     undo_highlight_alignment_selection: function (alignment) {
       for (let i = alignment.align_p.start; i <= alignment.align_p.end; i++) {
-        Vue.set(
-          this.staging.current_example.selected_token_indices_p,
-          i,
-          false
-        );
+        this.staging.current_example.token_background_color_p[i] = "inherit";
       }
       for (let i = alignment.align_h.start; i <= alignment.align_h.end; i++) {
-        Vue.set(
-          this.staging.current_example.selected_token_indices_h,
-          i,
-          false
-        );
+        this.staging.current_example.token_background_color_h[i] = "inherit";
+      }
+    },
+
+    rotate_color_id: function () {
+      this.staging.current_example.token_color_id_p += 1;
+      if (this.staging.current_example.token_color_id_p > 6) {
+        this.staging.current_example.token_color_id_p = 0;
+      }
+
+      this.staging.current_example.token_color_id_h += 1;
+      if (this.staging.current_example.token_color_id_h > 6) {
+        this.staging.current_example.token_color_id_h = 0;
+      }
+    },
+
+    highlight_with_color: function (index, premise) {
+      if (this.is_in_selection_highlight(index, premise)) {
+        return {background: "lightskyblue"}
+      }
+
+      if (premise) {
+        return {background: this.staging.current_example.token_background_color_p[index]};
+      } else {
+        return {background: this.staging.current_example.token_background_color_h[index]};
       }
     },
 
@@ -514,23 +676,6 @@ export default {
       this.staging.current_example.selection_h.current = -1;
     },
 
-    is_selected_answer_highlight: function (idx) {
-      return (
-        this.staging.current_example.selected_char_indices_for_answers[idx] ===
-        true
-      );
-    },
-
-    highlight_selected_answer: function (start, end) {
-      for (let i = start; i <= end; i++) {
-        Vue.set(
-          this.staging.current_example.selected_char_indices_for_answers,
-          i,
-          true
-        );
-      }
-    },
-
     /**
      * invalidate the current selection, this happens when mouse moved out of the selection scope.
      */
@@ -561,60 +706,6 @@ export default {
 
       return false;
     },
-  },
-
-  mounted() {
-    this.$nextTick(function () {
-      window.ipcRenderer.on("file_loaded", (event) => {
-        event.preventDefault();
-        alert("Input sentences are loaded into database !");
-      });
-
-      window.ipcRenderer.on("current_submitted", () => {
-        //event.preventDefault();
-        alert("Current annotation is submitted to database !");
-      });
-      window.ipcRenderer.on("download_complete", (path_dict) => {
-        //event.preventDefault();
-        alert("Download complete! File stored at " + path_dict["path"]);
-      });
-
-      window.ipcRenderer.on("load_example", (example) => {
-        this.staging.start_annotate = true;
-        this.staging.data.push(example);
-
-        let example_container = {
-          premise: example["premise"],
-          hypothesis: example["hypothesis"],
-          label: example["label"],
-          premise_tokens: example["premise"].split(" "),
-          hypothesis_tokens: example["hypothesis"].split(" "),
-          alignments: [],
-
-          selection_p: {
-            start: -1,
-            end: -1,
-            current: -1,
-            state: "none",
-          },
-
-          selection_h: {
-            start: -1,
-            end: -1,
-            current: -1,
-            state: "none",
-          },
-
-          selected_token_indices_p: {},
-          selected_token_indices_h: {},
-          selected_char_indices_for_answers: {},
-        };
-
-        this.staging.examples.push(example_container);
-        this.staging.current_example = this.staging.examples[0];
-        this.staging.current_dp = this.staging.data[0];
-      });
-    });
   },
 };
 </script>
