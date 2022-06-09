@@ -1,228 +1,252 @@
 <template>
-    <div class="main-content">
-      <h1 class="intro">Semantic Alignment Annotator</h1>
-      <h2 class="intro-content">
-        A simple tool for annotating semantic alignment evidence
-      </h2>
-      <form class="row g-3" v-if="isLoadingDisabled">
-        <div class="col-auto">
-          <input
-            type="text"
-            class="form-control"
-            v-on:change="(event) => get_dataset_name(event)"
-            placeholder="Enter dataset name"
-          />
-        </div>
-        <div class="col-auto">
-          <input
-            type="file"
-            class="form-control"
-            id="dataset_selector"
-            accept=".csv, .txt, .json, .jsonl, .tsv"
-            v-on:change="(event) => get_file_path(event)"
-          />
-        </div>
-        <div class="col-auto">
-          <button
-          type="button"
-          class="btn btn-primary mb-3"
-          v-on:click="load_dataset_to_db">Load</button>
-        </div>
-      </form>
+  <div class="main-content">
+    <h1 class="intro">Semantic Alignment and Causal Intervention Annotator</h1>
 
-      <form class="row g-3">
-        <div class="col-auto">
-          <div class="dropdown">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-              {{ selector_val }}
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-              <li 
-               v-for="(dataset, index) in dataset_names" 
-               v-bind:key="index"
-               v-on:click="(event) => selector_show(event)">
-                <a class="dropdown-item">{{ dataset }}</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div class="col-auto">
-          <input
-            type="text"
-            class="form-control"
-            v-on:change="(event) => get_starting_index(event)"
-            placeholder="Enter starting index"
-          />
-        </div>
-        <div class="col-auto">
-          <button
-          type=" button"
-          class="btn btn-primary mb-3"
-          v-on:click="(event) => start_annotation(event)">Start</button>
-        </div>
-      </form>
+    <nav style="margin-bottom: 20px">
+      <div class="nav nav-tabs" id="nav-tab" role="tablist">
+        <a class="nav-item nav-link" v-on:click="switch_tab('upload')" v-bind:class="{
+          'active': active_tab === 'upload'
+        }">Upload</a>
 
-      <div class="card cell">
-        <div class="card-header"></div>
-        <div class="card-body">
-          <blockquote class="blockquote mb-0" id="block_start">
-            <div class="conclusion" id="buttonbar">
-              <div class="addNew">
-                <button
-                  type="button"
-                  class="btn btn-primary btn-sm"
-                  v-on:click="get_prev_example"
-                >
-                  <i class="fas fa-arrow-left"></i>
-                </button>
-                <div class="addNew"></div>
-                <button
-                  type="button"
-                  class="btn btn-primary btn-sm"
-                  v-on:click="get_next_example"
-                >
-                  <i class="fas fa-arrow-right"></i>
-                </button>
-              </div>
-            </div>
-          </blockquote>
-          <blockquote class="blockquote mb-0" id="block0">
-            <div class="conclusion card" v-if="staging.start_annotate">
-                <div class="card-body passage-display-box">
-                  <li class="list-group-item">
-                    <span style="color: DodgerBlue"
-                        ><strong>[{{ staging.current_example_id }}]</strong></span
-                    >
-                    <p class="card-text passage-text">
-                      <span style="color: DodgerBlue"
-                        ><strong>[PREMISE]</strong></span
-                      >
-                      <span
-                        class="noselect"
-                        v-for="(token, index) in staging.current_example
-                          .premise_tokens"
-                        v-bind:key="token.index"
-                        v-on:mousedown="mousedown_text(index, true)"
-                        v-on:mouseup="mouseup_text(index, true)"
-                        v-on:mouseenter="mouseenter_text(index, true)"
-                        v-bind:style="highlight_with_color(index, true)"
-                        >{{ token + " " }}</span
-                      >
-                    </p>
-                    <p class="card-text">
-                      <span style="color: DodgerBlue"
-                        ><strong>[HYPOTHESIS]</strong></span
-                      >
-                      <span
-                        class="noselect"
-                        v-for="(token, index) in staging.current_example
-                          .hypothesis_tokens"
-                        v-bind:key="token.index"
-                        v-on:mousedown="mousedown_text(index, false)"
-                        v-on:mouseup="mouseup_text(index, false)"
-                        v-on:mouseenter="mouseenter_text(index, false)"
-                        v-bind:style="highlight_with_color(index, false)"
-                        >{{ token + " " }}</span
-                      >
-                    </p>
-                    <p class="card-text">
-                      <span style="color: DodgerBlue"
-                        ><strong>[LABEL]</strong></span
-                      >
-                      {{ staging.current_example.label }}
-                    </p>
-                  </li>
-                  <div class="col-auto" style="margin-top:20px; width:50%">
-                    <input
-                      type="text"
-                      v-bind:value="display_selected_text(true)"
-                      class="form-control span-input"
-                      placeholder="premise span"
-                    />
-                  </div>
-                  <div class="col-auto" style="margin-top:20px; width:50%">
-                    <input
-                      type="text"
-                      v-bind:value="display_selected_text(false)"
-                      class="form-control span-input"
-                      placeholder="hypothesis span"
-                    />
-                  </div>
-                  <div class="btn-group" style="float: left">
-                    <button
-                      type="button"
-                      v-on:click="add_alignment"
-                      class="btn btn-primary"
-                      style="margin: 25px 0px 10px 0px"
-                    >
-                      Add Alignment
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    class="btn btn-secondary"
-                    v-on:click="submit_current"
-                    style="margin: 25px 0px 10px 0px; float: right"
-                  >
-                    Submit Annotation
-                  </button>
-                </div>
-                <ul class="list-group" style="margin: 30px">
-                  <li
-                    v-for="(alignment, index) in staging.current_example
-                      .alignments"
-                    v-bind:key="index"
-                    class="
-                      list-group-item
-                      d-flex
-                      justify-content-between
-                      align-items-center
-                    "
-                  >
-                    <span style="color: DodgerBlue; font-size: 14px">
-                      <strong>
-                        {{ `[${alignment.align_p.text}]` }}
-                        <i class="fas fa-arrow-right"></i>
-                        {{ `[${alignment.align_h.text}]` }}
-                      </strong>
-                    </span>
-                    <button
-                      class="btn btn-outline-danger"
-                      type="button"
-                      v-on:click="remove_alignment(index)"
-                      data-balloon-pos="up"
-                      aria-label="Delete Alignment"
-                      style="margin-right: 10px"
-                    >
-                      <i class="fas fa-times"></i>
-                    </button>
-                  </li>
-                </ul>
-            </div>
-          </blockquote>
+        <a class="nav-item nav-link" v-on:click="switch_tab('alignment')" v-bind:class="{
+         'active': active_tab === 'alignment'
+        }">Alignment</a>
+
+        <a class="nav-item nav-link" v-on:click="switch_tab('intervention')" v-bind:class="{
+          'active': active_tab === 'intervention'
+        }">Intervention</a>
+
+        <a class="nav-item nav-link" v-on:click="switch_tab('nli')" v-bind:class="{
+         'active': active_tab === 'nli'
+        }">NLI Annotation</a>
+      </div>
+    </nav>
+
+    <form class="row g-3" v-if="active_tab === 'upload'">
+      <div class="col-auto">
+        <input type="text" class="form-control" v-on:change="(event) => get_dataset_name(event)"
+          placeholder="Enter dataset name" />
+      </div>
+      <div class="col-auto">
+        <input type="file" class="form-control" id="dataset_selector" accept=".csv, .txt, .json, .jsonl, .tsv"
+          v-on:change="(event) => get_file_path(event)" />
+      </div>
+      <div class="col-auto">
+        <button type="button" class="btn btn-primary mb-3" v-on:click="load_dataset_to_db">Load</button>
+      </div>
+    </form>
+
+    <form class="row g-3" v-if="active_tab !== 'upload'">
+      <div class="col-auto">
+        <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
+            data-bs-toggle="dropdown" aria-expanded="false">
+            {{ selector_val }}
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+            <li v-for="(dataset, index) in dataset_names" v-bind:key="index"
+              v-on:click="(event) => selector_show(event)">
+              <a class="dropdown-item">{{ dataset }}</a>
+            </li>
+          </ul>
         </div>
       </div>
-      <form class="row g-2">
-        <div class="col-auto">
-          <input
-            type="file"
-            class="form-control"
-            id="folder_selector"
-            v-on:change="(event) => get_folder_path(event)"
-            webkitdirectory
-          />
+      <div class="col-auto">
+        <input type="text" class="form-control" v-on:change="(event) => get_starting_index(event)"
+          placeholder="Enter starting index" />
+      </div>
+      <div class="col-auto">
+        <button type=" button" class="btn btn-primary mb-3"
+          v-on:click="(event) => start_annotation(event)">Start</button>
+      </div>
+    </form>
+
+    <div class="card cell" v-if="active_tab === 'alignment'">
+      <div class="card-body">
+        <div class="conclusion" id="buttonbar">
+          <div class="addNew">
+            <button type="button" class="btn btn-primary btn-sm" v-on:click="get_prev_example">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="addNew"></div>
+            <button type="button" class="btn btn-primary btn-sm" v-on:click="get_next_example">
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
         </div>
-        <div class="col-auto">
-          <button
-            type="button"
-            class="btn btn-primary mb-3"
-            v-on:click="download_annotation"
-          >
-            Download
-          </button>
+
+        <div class="conclusion card" v-if="staging.start_annotate">
+          <div class="card-body passage-display-box">
+            <li class="list-group-item">
+              <span style="color: DodgerBlue"><strong>[{{ staging.current_example_id }}]</strong></span>
+              <p class="card-text passage-text">
+                <span style="color: DodgerBlue"><strong>[PREMISE]</strong></span>
+                <span class="noselect" v-for="(token, index) in staging.current_example
+                .premise_tokens" v-bind:key="token.index" v-on:mousedown="mousedown_text(index, true)"
+                  v-on:mouseup="mouseup_text(index, true)" v-on:mouseenter="mouseenter_text(index, true)"
+                  v-bind:style="highlight_with_color(index, true)">{{ token + " " }}</span>
+              </p>
+              <p class="card-text">
+                <span style="color: DodgerBlue"><strong>[HYPOTHESIS]</strong></span>
+                <span class="noselect" v-for="(token, index) in staging.current_example
+                .hypothesis_tokens" v-bind:key="token.index" v-on:mousedown="mousedown_text(index, false)"
+                  v-on:mouseup="mouseup_text(index, false)" v-on:mouseenter="mouseenter_text(index, false)"
+                  v-bind:style="highlight_with_color(index, false)">{{ token + " " }}</span>
+              </p>
+              <p class="card-text">
+                <span style="color: DodgerBlue"><strong>[LABEL]</strong></span>
+                {{ staging.current_example.label }}
+              </p>
+
+              <p class="card-text">
+                <span style="color: DodgerBlue"><strong>[REASON]</strong></span>
+                {{ staging.current_example.reason }}
+              </p>
+
+            </li>
+            <div class="col-auto" style="margin-top:20px; width:50%">
+              <input type="text" v-bind:value="display_selected_text(true)" class="form-control span-input"
+                placeholder="premise span" />
+            </div>
+            <div class="col-auto" style="margin-top:20px; width:50%">
+              <input type="text" v-bind:value="display_selected_text(false)" class="form-control span-input"
+                placeholder="hypothesis span" />
+            </div>
+            <div class="btn-group" style="float: left">
+              <button type="button" v-on:click="add_alignment" class="btn btn-primary"
+                style="margin: 25px 0px 10px 0px">
+                Add Alignment
+              </button>
+            </div>
+            <button type="button" class="btn btn-secondary" v-on:click="submit_current"
+              style="margin: 25px 0px 10px 0px; float: right">
+              Submit Annotation
+            </button>
+          </div>
+          <ul class="list-group" style="margin: 30px">
+            <li v-for="(alignment, index) in staging.current_example
+            .alignments" v-bind:key="index" class="
+                    list-group-item
+                    d-flex
+                    justify-content-between
+                    align-items-center
+                  ">
+              <span style="color: DodgerBlue; font-size: 14px">
+                <strong>
+                  {{ `[${alignment.align_p.text}]` }}
+                  <i class="fas fa-arrow-right"></i>
+                  {{ `[${alignment.align_h.text}]` }}
+                </strong>
+              </span>
+              <button class="btn btn-outline-danger" type="button" v-on:click="remove_alignment(index)"
+                data-balloon-pos="up" aria-label="Delete Alignment" style="margin-right: 10px">
+                <i class="fas fa-times"></i>
+              </button>
+            </li>
+          </ul>
         </div>
-      </form>
+      </div>
     </div>
+
+    <div class="card cell" v-if="active_tab === 'intervention'">
+      <div class="card-body">
+        <div class="conclusion" id="buttonbar">
+          <div class="addNew">
+            <button type="button" class="btn btn-primary btn-sm" v-on:click="get_prev_example">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="addNew"></div>
+            <button type="button" class="btn btn-primary btn-sm" v-on:click="get_next_example">
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="conclusion card" v-if="staging.start_annotate">
+          <div class="card-body passage-display-box">
+            <li class="list-group-item">
+              <span style="color: DodgerBlue"><strong>[{{ staging.current_example_id }}]</strong></span>
+              <p class="card-text passage-text">
+                <span style="color: DodgerBlue"><strong>[PREMISE]</strong></span>
+                <span class="noselect" v-for="(token, index) in staging.current_example
+                .premise_tokens" v-bind:key="token.index" v-on:mousedown="mousedown_text(index, true)"
+                  v-on:mouseup="mouseup_text(index, true)" v-on:mouseenter="mouseenter_text(index, true)"
+                  v-bind:style="highlight_with_color(index, true)">{{ token + " " }}</span>
+              </p>
+              <p class="card-text">
+                <span style="color: DodgerBlue"><strong>[HYPOTHESIS]</strong></span>
+                <span class="noselect" v-for="(token, index) in staging.current_example
+                .hypothesis_tokens" v-bind:key="token.index" v-on:mousedown="mousedown_text(index, false)"
+                  v-on:mouseup="mouseup_text(index, false)" v-on:mouseenter="mouseenter_text(index, false)"
+                  v-bind:style="highlight_with_color(index, false)">{{ token + " " }}</span>
+              </p>
+              <p class="card-text">
+                <span style="color: DodgerBlue"><strong>[LABEL]</strong></span>
+                {{ staging.current_example.label }}
+              </p>
+
+              <p class="card-text">
+                <span style="color: DodgerBlue"><strong>[REASON]</strong></span>
+                {{ staging.current_example.reason }}
+              </p>
+
+            </li>
+            <div class="col-auto" style="margin-top:20px; width:50%">
+              <input type="text" class="form-control span-input"
+                placeholder="premise span" />
+            </div>
+            <div class="col-auto" style="margin-top:20px; width:50%">
+              <input type="text" class="form-control span-input"
+                placeholder="hypothesis span" />
+            </div>
+            <div class="btn-group" style="float: left">
+              <button type="button" v-on:click="add_alignment" class="btn btn-primary"
+                style="margin: 25px 0px 10px 0px">
+                Add Intervention
+              </button>
+            </div>
+            <button type="button" class="btn btn-secondary" v-on:click="submit_current"
+              style="margin: 25px 0px 10px 0px; float: right">
+              Submit Example
+            </button>
+          </div>
+          <ul class="list-group" style="margin: 30px">
+            <li v-for="(alignment, index) in staging.current_example
+            .alignments" v-bind:key="index" class="
+                    list-group-item
+                    d-flex
+                    justify-content-between
+                    align-items-center
+                  ">
+              <span style="color: DodgerBlue; font-size: 14px">
+                <strong>
+                  {{ `[${alignment.align_p.text}]` }}
+                  <i class="fas fa-arrow-right"></i>
+                  {{ `[${alignment.align_h.text}]` }}
+                </strong>
+              </span>
+              <button class="btn btn-outline-danger" type="button" v-on:click="remove_alignment(index)"
+                data-balloon-pos="up" aria-label="Delete Alignment" style="margin-right: 10px">
+                <i class="fas fa-times"></i>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <form class="row g-2">
+      <div class="col-auto">
+        <input type="file" class="form-control" id="folder_selector" v-on:change="(event) => get_folder_path(event)"
+          webkitdirectory />
+      </div>
+      <div class="col-auto">
+        <button type="button" class="btn btn-primary mb-3" v-on:click="download_annotation">
+          Download
+        </button>
+      </div>
+    </form>
+  </div>
 </template>
 
 <script>
@@ -253,11 +277,10 @@ export default {
        * Tab switching.
        *
        */
-      active_tab: "overview",
+      active_tab: "alignment",
       frozen: true,
       frozen_time: 3,
       seconds_remain: 180,
-      isLoadingDisabled: false,
 
       data_loaded: false,
 
@@ -295,6 +318,10 @@ export default {
   },
   
   methods: {
+    switch_tab: function (tab) {
+      this.active_tab = tab;
+    },
+
     get_dataset_name: function (event) {
       this.staging.loading_dataset_name = event.target.value;
     },
@@ -354,6 +381,7 @@ export default {
           premise: example["premise"],
           hypothesis: example["hypothesis"],
           label: example["label"],
+          reason: example["reason"],
           premise_tokens: example["premise"].split(" "),
           hypothesis_tokens: example["hypothesis"].split(" "),
           alignments: [],
@@ -412,11 +440,21 @@ export default {
         var index = 0;
         this.staging.datalistset.forEach((element) => {
           let example = JSON.parse(element);
-          db.collection(this.staging.current_dataset_name).add({
+          let reason = "";
+          let label = "";
+          if (this.staging.loading_dataset_name.includes("anli")) {
+            reason = example["reason"]
+            label = label_map[example["label"]]
+          } else {
+            reason = example["explanation_1"];
+            label = example["label"]
+          }
+          db.collection(this.staging.loading_dataset_name).add({
             index: index,
-            premise: example["context"],
+            premise: example["premise"],
             hypothesis: example["hypothesis"],
-            label: label_map[example["label"]],
+            label: label,
+            reason: reason
           }).then((docRef) => {
               console.log("Document written with ID: ", docRef.id);
           })
