@@ -1,4 +1,4 @@
-# saint-annotator
+# Math-Concept-annotator
 
 ## Project setup
 ```
