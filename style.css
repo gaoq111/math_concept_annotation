@@ -1,0 +1,255 @@
+.main-content {
+  text-align: center;
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  align-items: center;
+}
+
+.intro {
+  font-size: 2.5rem;
+  line-height: 57px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue";
+  font-weight: 500;
+  padding: 0px;
+  margin: 5px;
+}
+
+.intro-content {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  margin: 5px;
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  width: 80%;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.addNew {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  margin: 10px 0;
+}
+
+.span-input {
+  width: 40%;
+}
+
+.card-text {
+  text-align: left;
+}
+
+.conclusion {
+  /*font-family: courier;*/
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.form-control:hover,
+.form-control:active,
+.form-control:focus,
+button:focus,
+button:active,
+button:hover,
+label:focus,
+.btn:active,
+.btn.active {
+  outline: 0px !important;
+  -webkit-appearance: none;
+  box-shadow: none !important;
+}
+
+button:focus {
+  outline: none;
+}
+
+.ans_span {
+  display: inline;
+}
+
+.span1a.highlighted {
+  background-color: lightblue;
+}
+
+.span1b.highlighted {
+  background-color: lightgreen;
+}
+
+.span2a.highlighted {
+  background-color: lightblue;
+}
+
+.span2b.highlighted {
+  background-color: lightgreen;
+}
+
+.span3a.highlighted {
+  background-color: lightblue;
+}
+
+.span34b.highlighted {
+  background-color: lightgreen;
+}
+
+.span3c.highlighted {
+  background-color: lightgreen;
+}
+
+.span4a.highlighted {
+  background-color: lightblue;
+}
+
+.span6a.highlighted {
+  background-color: lightblue;
+}
+
+.span6b.highlighted {
+  background-color: lightgreen;
+}
+
+.span7a.highlighted {
+  background-color: lightblue;
+}
+
+.span7b.highlighted {
+  background-color: lightgreen;
+}
+
+.span9a.highlighted {
+  background-color: lightgreen;
+}
+
+.span9b.highlighted {
+  background-color: var(--highlight-color);
+}
+
+.span9c.highlighted {
+  background-color: pink;
+}
+
+.span9d.highlighted {
+  background-color: orange;
+}
+
+.span10.highlighted {
+  background-color: lightblue;
+}
+
+.span11a.highlighted {
+  background-color: lightblue;
+}
+
+.span11b.highlighted {
+  background-color: lightgreen;
+}
+
+.span12a.highlighted {
+  background-color: lightblue;
+}
+
+.span12b.highlighted {
+  background-color: lightgreen;
+}
+
+.span13a.highlighted {
+  background-color: lightblue;
+}
+
+.span13b.highlighted {
+  background-color: lightgreen;
+}
+
+.annotated {
+  float: left;
+}
+
+select {
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+}
+
+.query:hover {
+  border: solid 2px darkred;
+}
+
+.card-body {
+  padding: 1rem;
+}
+
+#questionsWritten .card-text {
+  white-space: pre-wrap;
+}
+
+#passage {
+  white-space: pre-wrap;
+}
+
+#answersWritten p.card-text {
+  margin-bottom: 0.25rem;
+}
+
+#answersWritten-event p.card-text {
+  margin-bottom: 0.25rem;
+}
+
+.btn.btn-primary[disabled] {
+  background-color: #6c757d;
+}
+
+.highlight {
+  background-color: yellow;
+}
+
+.answer {
+  line-height: 2em;
+  font-size: 14px;
+}
+
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Old versions of Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
+                                supported by Chrome, Opera and Firefox */
+}
+
+.passage-display-box span.highlight {
+  background: yellow;
+}
+
+.passage-display-box .passage-text span {
+  cursor: text;
+}
+/*.passage-display-box span:hover{*/
+/*background: lightskyblue;*/
+/*}*/
+
+.passage-display-box span.select_highlight {
+  background: lightskyblue;
+}
+
+form.hidden {
+  display: none;
+}
+
+.passage-display-box span.is_selected_answer {
+  color: red;
+  font-style: italic;
+  border-bottom: thick solid rgb(0, 0, 255);
+}
